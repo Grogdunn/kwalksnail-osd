@@ -1,3 +1,5 @@
+package dev.grogdunn.kwalksnailosd
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,7 +24,7 @@ import androidx.compose.ui.window.application
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "La mia Prima App Compose Desktop"
+        title = "La mia Prima dev.grogdunn.kwalksnailosd.App Compose Desktop"
     ) {
         App()
     }
@@ -46,6 +48,7 @@ fun App() {
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
                 testo = "Hai premuto il pulsante!! 🎉"
+                desktopFileDialog { print(it) }
             }) {
                 Text("Cliccami")
             }
