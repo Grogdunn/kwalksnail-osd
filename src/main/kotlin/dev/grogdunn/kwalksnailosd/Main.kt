@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import java.nio.file.Path
 
 fun main() = application {
     Window(
@@ -34,6 +35,7 @@ fun main() = application {
 @Preview
 fun App() {
     var testo by remember { mutableStateOf("Ciao Kotlin!") }
+    var selectedFile by remember { mutableStateOf(null as Path?) }
 
     MaterialTheme {
         Column(
@@ -45,10 +47,11 @@ fun App() {
                 text = testo,
                 style = MaterialTheme.typography.h4
             )
+            Text(selectedFile?.toString() ?: "No file selected")
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
                 testo = "Hai premuto il pulsante!! 🎉"
-                desktopFileDialog { print(it) }
+                desktopFileDialog { selectedFile = it }
             }) {
                 Text("Cliccami")
             }
