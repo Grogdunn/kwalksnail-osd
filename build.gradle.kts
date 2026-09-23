@@ -16,6 +16,9 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation(compose.desktop.currentOs)
+    implementation("org.bytedeco:javacv-platform:1.5.14")
+    implementation("io.github.oshai:kotlin-logging-jvm:8.0.4")
+    implementation("ch.qos.logback:logback-classic:1.6.3")
 }
 
 kotlin {
@@ -30,7 +33,7 @@ compose.desktop {
     application {
         mainClass = "MainKt"
         nativeDistributions {
-            packageName = "MiaAppDesktop"
+            packageName = "Walksnail-osd"
             packageVersion = "1.0.0"
         }
     }

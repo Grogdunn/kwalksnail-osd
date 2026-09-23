@@ -22,7 +22,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.nio.file.Path
+
+private val logger = KotlinLogging.logger {}
 
 fun main() = application {
     Window(
@@ -41,7 +44,7 @@ fun App() {
     var selectedSrt by remember { mutableStateOf(null as Path?) }
 
     val onFilePickerClose: (Path?) -> Unit = {
-        println("onCloseRequest called with: $it")
+        logger.info { "onCloseRequest called with: $it" }
         if (it != null) {
             val lookupFiles = lookupFiles(it)
             if (selectedMp4 == null) {
