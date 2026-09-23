@@ -1,6 +1,5 @@
 package dev.grogdunn.kwalksnailosd
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -41,13 +39,20 @@ fun App() {
     var selectedMp4 by remember { mutableStateOf(null as Path?) }
     var selectedOsd by remember { mutableStateOf(null as Path?) }
     var selectedSrt by remember { mutableStateOf(null as Path?) }
-    val onCloseRequest: (Path?) -> Unit = {
+
+    val onFilePickerClose: (Path?) -> Unit = {
         println("onCloseRequest called with: $it")
         if (it != null) {
             val lookupFiles = lookupFiles(it)
-            selectedMp4 = lookupFiles.mp4Path
-            selectedSrt = lookupFiles.srtPath
-            selectedOsd = lookupFiles.osdPath
+            if (selectedMp4 == null) {
+                selectedMp4 = lookupFiles.mp4Path
+            }
+            if (selectedOsd == null) {
+                selectedOsd = lookupFiles.osdPath
+            }
+            if (selectedSrt == null) {
+                selectedSrt = lookupFiles.srtPath
+            }
         }
     }
     MaterialTheme {
@@ -60,7 +65,7 @@ fun App() {
                 Text("Select MP4 File")
                 Text(selectedMp4?.fileName?.toString() ?: "No file selected")
                 Button(onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("mp4")) { onCloseRequest(it) }
+                    desktopFileDialog(allowedExtensions = listOf("mp4")) { onFilePickerClose(it) }
                 }) {
                     Text("Select MP4 File")
                 }
@@ -68,7 +73,7 @@ fun App() {
                 Text("Select OSD File")
                 Text(selectedOsd?.fileName?.toString() ?: "No file selected")
                 Button(onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("osd")) { onCloseRequest(it) }
+                    desktopFileDialog(allowedExtensions = listOf("osd")) { onFilePickerClose(it) }
                 }) {
                     Text("Select OSD File")
                 }
@@ -76,7 +81,7 @@ fun App() {
                 Text("Select SRT File")
                 Text(selectedSrt?.fileName?.toString() ?: "No file selected")
                 Button(onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("srt")) { onCloseRequest(it) }
+                    desktopFileDialog(allowedExtensions = listOf("srt")) { onFilePickerClose(it) }
                 }) {
                     Text("Select SRT File")
                 }
