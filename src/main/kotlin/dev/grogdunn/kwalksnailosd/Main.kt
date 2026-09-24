@@ -12,10 +12,8 @@ import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -39,22 +37,22 @@ fun main() = application {
 @Composable
 @Preview
 fun App() {
-    var selectedMp4 by remember { mutableStateOf(null as Path?) }
-    var selectedOsd by remember { mutableStateOf(null as Path?) }
-    var selectedSrt by remember { mutableStateOf(null as Path?) }
+    val selectedMp4 = remember { mutableStateOf(null as Path?) }
+    val selectedOsd = remember { mutableStateOf(null as Path?) }
+    val selectedSrt = remember { mutableStateOf(null as Path?) }
 
     val onFilePickerClose: (Path?) -> Unit = {
         logger.info { "onCloseRequest called with: $it" }
         if (it != null) {
             val lookupFiles = lookupFiles(it)
-            if (selectedMp4 == null) {
-                selectedMp4 = lookupFiles.mp4Path
+            if (selectedMp4.value == null) {
+                selectedMp4.value = lookupFiles.mp4Path
             }
-            if (selectedOsd == null) {
-                selectedOsd = lookupFiles.osdPath
+            if (selectedOsd.value == null) {
+                selectedOsd.value = lookupFiles.osdPath
             }
-            if (selectedSrt == null) {
-                selectedSrt = lookupFiles.srtPath
+            if (selectedSrt.value == null) {
+                selectedSrt.value = lookupFiles.srtPath
             }
         }
     }
@@ -66,7 +64,7 @@ fun App() {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("Select MP4 File")
-                Text(selectedMp4?.fileName?.toString() ?: "No file selected")
+                Text(selectedMp4.value?.fileName?.toString() ?: "No file selected")
                 Button(onClick = {
                     desktopFileDialog(allowedExtensions = listOf("mp4")) { onFilePickerClose(it) }
                 }) {
@@ -74,7 +72,7 @@ fun App() {
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text("Select OSD File")
-                Text(selectedOsd?.fileName?.toString() ?: "No file selected")
+                Text(selectedOsd.value?.fileName?.toString() ?: "No file selected")
                 Button(onClick = {
                     desktopFileDialog(allowedExtensions = listOf("osd")) { onFilePickerClose(it) }
                 }) {
@@ -82,7 +80,7 @@ fun App() {
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text("Select SRT File")
-                Text(selectedSrt?.fileName?.toString() ?: "No file selected")
+                Text(selectedSrt.value?.fileName?.toString() ?: "No file selected")
                 Button(onClick = {
                     desktopFileDialog(allowedExtensions = listOf("srt")) { onFilePickerClose(it) }
                 }) {
@@ -93,7 +91,6 @@ fun App() {
                 modifier = Modifier.fillMaxSize()
             ) { }
         }
-
     }
 
 }
