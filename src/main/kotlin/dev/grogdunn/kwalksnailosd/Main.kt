@@ -13,6 +13,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +22,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import dev.grogdunn.kwalksnailosd.osd.OsdParser
+import io.github.oshai.kotlinlogging.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
+
 
 fun main() = application {
     Window(
@@ -36,6 +42,15 @@ fun main() = application {
 fun App() {
     val stateHolder = remember { AppStateHolder() }
     val state = stateHolder.state
+    val osdParser = OsdParser()
+
+    LaunchedEffect(state.selectedOsd) {
+        if (state.selectedOsd != null) {
+            logger.info { "Selected OSD: ${state.selectedOsd.fileName}" }
+            val parse = osdParser.parse(state.selectedOsd)
+            stateHolder.saveOsd(parse)
+        }
+    }
 
     MaterialTheme {
         Row(modifier = Modifier.fillMaxSize().padding(5.dp)) {
