@@ -22,10 +22,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import dev.grogdunn.kwalksnailosd.osd.OsdParser
-import io.github.oshai.kotlinlogging.KotlinLogging
-
-private val logger = KotlinLogging.logger {}
 
 
 fun main() = application {
@@ -42,14 +38,10 @@ fun main() = application {
 fun App() {
     val stateHolder = remember { AppStateHolder() }
     val state = stateHolder.state
-    val osdParser = OsdParser()
+    val selectedOsd = state.selectedOsd
 
-    LaunchedEffect(state.selectedOsd) {
-        if (state.selectedOsd != null) {
-            logger.info { "Selected OSD: ${state.selectedOsd.fileName}" }
-            val parse = osdParser.parse(state.selectedOsd)
-            stateHolder.saveOsd(parse)
-        }
+    LaunchedEffect(selectedOsd) {
+        selectedOsd?.let { stateHolder.parseSelectedOsd(it) }
     }
 
     MaterialTheme {
@@ -86,7 +78,11 @@ fun App() {
             Column(
                 modifier = Modifier.fillMaxSize().background(Color.DarkGray)
             ) {
-
+                when {
+                    state.isParsingOsd -> Text("Parsing OSD file...")
+                    state.osdError != null -> Text("OSD parsing failed: ${state.osdError}")
+                    state.osd != null -> Text("FC firmware: ${state.osd.fcFirmware}")
+                }
             }
         }
     }
