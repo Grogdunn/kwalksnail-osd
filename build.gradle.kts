@@ -34,7 +34,7 @@ compose.desktop {
         mainClass = "MainKt"
         nativeDistributions {
             packageName = "Walksnail-osd"
-            packageVersion = "1.0.0"
+            packageVersion = version.toString()
         }
     }
 }

@@ -13,7 +13,6 @@ import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,10 +21,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import io.github.oshai.kotlinlogging.KotlinLogging
-import java.nio.file.Path
-
-private val logger = KotlinLogging.logger {}
 
 fun main() = application {
     Window(
@@ -39,25 +34,9 @@ fun main() = application {
 @Composable
 @Preview
 fun App() {
-    val selectedMp4 = remember { mutableStateOf(null as Path?) }
-    val selectedOsd = remember { mutableStateOf(null as Path?) }
-    val selectedSrt = remember { mutableStateOf(null as Path?) }
+    val stateHolder = remember { AppStateHolder() }
+    val state = stateHolder.state
 
-    val onFilePickerClose: (Path?) -> Unit = {
-        logger.info { "onCloseRequest called with: $it" }
-        if (it != null) {
-            val lookupFiles = lookupFiles(it)
-            if (selectedMp4.value == null) {
-                selectedMp4.value = lookupFiles.mp4Path
-            }
-            if (selectedOsd.value == null) {
-                selectedOsd.value = lookupFiles.osdPath
-            }
-            if (selectedSrt.value == null) {
-                selectedSrt.value = lookupFiles.srtPath
-            }
-        }
-    }
     MaterialTheme {
         Row(modifier = Modifier.fillMaxSize().padding(5.dp)) {
             Column(
@@ -66,32 +45,31 @@ fun App() {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("Select MP4 File")
-                Text(selectedMp4.value?.fileName?.toString() ?: "No file selected")
+                Text(state.selectedMp4?.fileName?.toString() ?: "No file selected")
                 Button(onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("mp4")) { onFilePickerClose(it) }
+                    desktopFileDialog(allowedExtensions = listOf("mp4"), onCloseRequest = stateHolder::onFilePickerClosed)
                 }) {
                     Text("Select MP4 File")
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text("Select OSD File")
-                Text(selectedOsd.value?.fileName?.toString() ?: "No file selected")
+                Text(state.selectedOsd?.fileName?.toString() ?: "No file selected")
                 Button(onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("osd")) { onFilePickerClose(it) }
+                    desktopFileDialog(allowedExtensions = listOf("osd"), onCloseRequest = stateHolder::onFilePickerClosed)
                 }) {
                     Text("Select OSD File")
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text("Select SRT File")
-                Text(selectedSrt.value?.fileName?.toString() ?: "No file selected")
+                Text(state.selectedSrt?.fileName?.toString() ?: "No file selected")
                 Button(onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("srt")) { onFilePickerClose(it) }
+                    desktopFileDialog(allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
                 }) {
                     Text("Select SRT File")
                 }
             }
             Column(
                 modifier = Modifier.fillMaxSize().background(Color.DarkGray)
-
             ) {
 
             }
