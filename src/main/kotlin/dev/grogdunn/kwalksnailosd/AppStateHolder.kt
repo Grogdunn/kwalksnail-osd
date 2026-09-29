@@ -3,6 +3,7 @@ package dev.grogdunn.kwalksnailosd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +16,7 @@ data class AppUiState(
     val selectedSrt: Path? = null,
 
     val selectedOsd: Path? = null,
-    val osd: OsdParser.Osd? = null,
+    val osd: Osd? = null,
     val isParsingOsd: Boolean = false,
     val osdError: String? = null,
 )

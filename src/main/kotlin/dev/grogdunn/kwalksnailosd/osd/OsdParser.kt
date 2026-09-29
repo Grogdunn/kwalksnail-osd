@@ -4,6 +4,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Duration
 
 private const val HEADER_BYTES = 40
 private const val FC_TYPE_BYTES = 4
@@ -32,7 +33,9 @@ class OsdParser {
                 frames.add(parseFrame(frameBytes))
             }
 
-            return Osd(fcFirmware, frames)
+            val frameIntervalMillis = (frames.last().timestampMillis - frames.first().timestampMillis).toDouble() / (frames.size - 1).toDouble()
+            val duration = Duration.ofMillis(frames.last().timestampMillis) + Duration.ofMillis(frameIntervalMillis.toLong())
+            return Osd(fcFirmware, frames, duration)
         }
     }
 
@@ -57,7 +60,7 @@ class OsdParser {
     }
 }
 
-data class Osd(val fcFirmware: FcFirmware, val frames: List<Frame>)
+data class Osd(val fcFirmware: FcFirmware, val frames: List<Frame>, val duration: Duration)
 
 enum class FcFirmware {
     BETAFLIGHT,
@@ -91,7 +94,7 @@ enum class FcFirmware {
     }
 }
 
-data class Frame(val timestamp: Long, val glyphs: List<Glyph>)
+data class Frame(val timestampMillis: Long, val glyphs: List<Glyph>)
 
 data class Glyph(val index: Int, val position: Position)
 data class Position(val x: Int, val y: Int)
