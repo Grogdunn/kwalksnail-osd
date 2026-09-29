@@ -8,10 +8,10 @@ import java.nio.file.Path
 private const val HEADER_BYTES = 40
 private const val FC_TYPE_BYTES = 4
 private const val TIMESTAMP_BYTES = 4
-private const val BYTES_PER_GLYPH = 2
+private const val GLYPH_BYTES = 2
 private const val GRID_WIDTH = 53
 private const val GRID_HEIGHT = 20
-private const val FRAME_BYTES = TIMESTAMP_BYTES + GRID_WIDTH * GRID_HEIGHT * BYTES_PER_GLYPH
+private const val FRAME_BYTES = TIMESTAMP_BYTES + GRID_WIDTH * GRID_HEIGHT * GLYPH_BYTES
 
 class OsdParser {
     fun parse(selectedOsd: Path): Osd {
@@ -21,6 +21,7 @@ class OsdParser {
                 throw IllegalArgumentException("OSD header is incomplete: expected $HEADER_BYTES bytes, got ${header.size}")
             }
             val fcBytes = header.take(FC_TYPE_BYTES).toByteArray()
+            val fcFirmware = FcFirmware.getFcFirmware(fcBytes)
             val frames = mutableListOf<Frame>()
             while (true) {
                 val frameBytes = input.readNBytes(FRAME_BYTES)
@@ -30,26 +31,33 @@ class OsdParser {
                 }
                 frames.add(parseFrame(frameBytes))
             }
-            return Osd(FcFirmware.getFcFirmware(fcBytes), frames)
+
+            return Osd(fcFirmware, frames)
         }
     }
 
-    fun parseFrame(frameBytes: ByteArray): Frame {
+    private fun parseFrame(frameBytes: ByteArray): Frame {
         require(frameBytes.size == FRAME_BYTES) {
             "OSD frame must be $FRAME_BYTES bytes long, but was ${frameBytes.size}"
         }
-
         val buffer = ByteBuffer.wrap(frameBytes).order(ByteOrder.LITTLE_ENDIAN)
         val timestamp = Integer.toUnsignedLong(buffer.int)
-        val glyphs = ByteArray(buffer.remaining()).also(buffer::get).toList()
+        val totalGlyphs = GRID_WIDTH * GRID_HEIGHT
+        val glyphs = ArrayList<Glyph>()
+        for (idx in 0 until totalGlyphs) {
+            val glyphValue = buffer.short.toUShort().toInt()
+            if (glyphValue == 0x00 || glyphValue == 0x20) {
+                continue
+            }
+            val x = idx % GRID_WIDTH
+            val y = idx / GRID_WIDTH
+            glyphs.add(Glyph(index = glyphValue, position = Position(x, y)))
+        }
         return Frame(timestamp, glyphs)
     }
-
-    data class Osd(val fcFirmware: FcFirmware, val frames: List<Frame>)
 }
 
-data class Frame(val timestamp: Long, val glyphs: List<Byte>)
-
+data class Osd(val fcFirmware: FcFirmware, val frames: List<Frame>)
 
 enum class FcFirmware {
     BETAFLIGHT,
@@ -82,3 +90,9 @@ enum class FcFirmware {
 
     }
 }
+
+data class Frame(val timestamp: Long, val glyphs: List<Glyph>)
+
+data class Glyph(val index: Int, val position: Position)
+data class Position(val x: Int, val y: Int)
+
