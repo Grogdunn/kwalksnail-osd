@@ -38,10 +38,13 @@ fun main() = application {
 fun App() {
     val stateHolder = remember { AppStateHolder() }
     val state = stateHolder.state
-    val selectedOsd = state.selectedOsd
 
-    LaunchedEffect(selectedOsd) {
-        selectedOsd?.let { stateHolder.parseSelectedOsd(it) }
+    LaunchedEffect(state.selectedOsd) {
+        state.selectedOsd?.let { stateHolder.parseSelectedOsd() }
+    }
+
+    LaunchedEffect(state.selectedFont) {
+        state.selectedFont?.let { stateHolder.parseSelectedFont() }
     }
 
     MaterialTheme {
@@ -73,6 +76,14 @@ fun App() {
                     desktopFileDialog(allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
                 }) {
                     Text("Select SRT File")
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text("Select font File")
+                Text(state.selectedFont?.fileName?.toString() ?: "No file selected")
+                Button(onClick = {
+                    desktopFileDialog(allowedExtensions = listOf("png"), onCloseRequest = stateHolder::onFontFilePickerClosed)
+                }) {
+                    Text("Select font File")
                 }
             }
             Column(

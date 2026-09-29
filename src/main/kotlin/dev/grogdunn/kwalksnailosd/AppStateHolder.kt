@@ -3,6 +3,8 @@ package dev.grogdunn.kwalksnailosd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import dev.grogdunn.kwalksnailosd.font.FontFile
+import dev.grogdunn.kwalksnailosd.font.FontParser
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
 import kotlinx.coroutines.CancellationException
@@ -19,9 +21,15 @@ data class AppUiState(
     val osd: Osd? = null,
     val isParsingOsd: Boolean = false,
     val osdError: String? = null,
+
+    val selectedFont: Path? = null,
+    val font: FontFile? = null,
 )
 
-class AppStateHolder(private val osdParser: OsdParser = OsdParser()) {
+class AppStateHolder(
+    private val osdParser: OsdParser = OsdParser(),
+    private val fontParser: FontParser = FontParser()
+) {
     var state by mutableStateOf(AppUiState())
         private set
 
@@ -41,25 +49,32 @@ class AppStateHolder(private val osdParser: OsdParser = OsdParser()) {
         )
     }
 
-    suspend fun parseSelectedOsd(path: Path) {
-        if (state.selectedOsd != path) return
+    fun onFontFilePickerClosed(path: Path?) {
+        if (path == null) return
+
+        state = state.copy(selectedFont = path)
+    }
+
+    suspend fun parseSelectedFont() {
+        if (state.selectedFont == null) return
+        state = state.copy(font = state.selectedFont?.let { fontParser.parse(it) })
+
+    }
+
+    suspend fun parseSelectedOsd() {
+        if (state.selectedOsd == null) return
 
         state = state.copy(osd = null, isParsingOsd = true, osdError = null)
         try {
-            val parsedOsd = withContext(Dispatchers.IO) { osdParser.parse(path) }
-            if (state.selectedOsd == path) {
-                state = state.copy(osd = parsedOsd)
-            }
+            val parsedOsd = withContext(Dispatchers.IO) { osdParser.parse(state.selectedOsd!!) }
+            state = state.copy(osd = parsedOsd)
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            if (state.selectedOsd == path) {
-                state = state.copy(osd = null, osdError = exception.message ?: "Unable to parse OSD file")
-            }
+            state = state.copy(osd = null, osdError = exception.message ?: "Unable to parse OSD file")
         } finally {
-            if (state.selectedOsd == path) {
-                state = state.copy(isParsingOsd = false)
-            }
+            state = state.copy(isParsingOsd = false)
         }
     }
+
 }
