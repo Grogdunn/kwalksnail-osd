@@ -6,15 +6,16 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 
-private const val HEADER_BYTES = 40
-private const val FC_TYPE_BYTES = 4
-private const val TIMESTAMP_BYTES = 4
-private const val GLYPH_BYTES = 2
-private const val GRID_WIDTH = 53
-private const val GRID_HEIGHT = 20
-private const val FRAME_BYTES = TIMESTAMP_BYTES + GRID_WIDTH * GRID_HEIGHT * GLYPH_BYTES
 
 class OsdParser {
+    private val HEADER_BYTES = 40
+    private val FC_TYPE_BYTES = 4
+    private val TIMESTAMP_BYTES = 4
+    private val GLYPH_BYTES = 2
+    private val GRID_WIDTH = 53
+    private val GRID_HEIGHT = 20
+    private val FRAME_BYTES = TIMESTAMP_BYTES + GRID_WIDTH * GRID_HEIGHT * GLYPH_BYTES
+
     fun parse(selectedOsd: Path): Osd {
         Files.newInputStream(selectedOsd).use { input ->
             val header = input.readNBytes(HEADER_BYTES)
