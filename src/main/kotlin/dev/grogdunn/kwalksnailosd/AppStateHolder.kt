@@ -3,10 +3,10 @@ package dev.grogdunn.kwalksnailosd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import dev.grogdunn.kwalksnailosd.osd.font.Font
-import dev.grogdunn.kwalksnailosd.osd.font.FontParser
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
+import dev.grogdunn.kwalksnailosd.osd.font.Font
+import dev.grogdunn.kwalksnailosd.osd.font.FontParser
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import dev.grogdunn.kwalksnailosd.video.VideoParser
 import kotlinx.coroutines.CancellationException
@@ -66,10 +66,8 @@ class AppStateHolder(
     }
 
     suspend fun parseSelectedMp4() {
-        withContext(Dispatchers.IO) {
-            val videoInfo = state.selectedMp4?.let { videoParser.getVideoInfo(it) }
-            state = state.copy(videoInfo = videoInfo)
-        }
+        val videoInfo = withContext(Dispatchers.IO) { state.selectedMp4?.let { videoParser.getVideoInfo(it) } }
+        state = state.copy(videoInfo = videoInfo)
     }
 
     suspend fun parseSelectedOsd() {
