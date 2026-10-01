@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -41,6 +42,10 @@ fun App() {
 
     LaunchedEffect(state.selectedOsd) {
         state.selectedOsd?.let { stateHolder.parseSelectedOsd() }
+    }
+
+    LaunchedEffect(state.selectedMp4) {
+        state.selectedMp4?.let { stateHolder.parseSelectedMp4() }
     }
 
     LaunchedEffect(state.selectedFont) {
@@ -86,14 +91,17 @@ fun App() {
                     Text("Select font File")
                 }
             }
+            Spacer(modifier = Modifier.width(10.dp))
             Column(
-                modifier = Modifier.fillMaxSize().background(Color.DarkGray)
+                modifier = Modifier.fillMaxSize()
             ) {
                 when {
                     state.isParsingOsd -> Text("Parsing OSD file...")
                     state.osdError != null -> Text("OSD parsing failed: ${state.osdError}")
-                    state.osd != null -> Text("FC firmware: ${state.osd.fcFirmware}")
+                    state.osd != null -> Text("OSD: ${state.osd.fcFirmware} Frames#: ${state.osd.frames.size} Duration: ${state.osd.duration}")
+                    else -> Text("No OSD file selected")
                 }
+                Text("Video info: ${state.videoInfo}")
             }
         }
     }

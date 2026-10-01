@@ -7,6 +7,8 @@ import dev.grogdunn.kwalksnailosd.font.FontFile
 import dev.grogdunn.kwalksnailosd.font.FontParser
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
+import dev.grogdunn.kwalksnailosd.video.VideoInfo
+import dev.grogdunn.kwalksnailosd.video.VideoParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,11 +26,13 @@ data class AppUiState(
 
     val selectedFont: Path? = null,
     val font: FontFile? = null,
+    val videoInfo: VideoInfo? = null,
 )
 
 class AppStateHolder(
     private val osdParser: OsdParser = OsdParser(),
-    private val fontParser: FontParser = FontParser()
+    private val fontParser: FontParser = FontParser(),
+    private val videoParser: VideoParser = VideoParser()
 ) {
     var state by mutableStateOf(AppUiState())
         private set
@@ -57,8 +61,15 @@ class AppStateHolder(
 
     suspend fun parseSelectedFont() {
         if (state.selectedFont == null) return
-        state = state.copy(font = state.selectedFont?.let { fontParser.parse(it) })
+        val font = withContext(Dispatchers.IO) { state.selectedFont?.let { fontParser.parse(it) } }
+        state = state.copy(font = font)
+    }
 
+    suspend fun parseSelectedMp4() {
+        withContext(Dispatchers.IO) {
+            val videoInfo = state.selectedMp4?.let { videoParser.getVideoInfo(it) }
+            state = state.copy(videoInfo = videoInfo)
+        }
     }
 
     suspend fun parseSelectedOsd() {
