@@ -1,4 +1,4 @@
-package dev.grogdunn.kwalksnailosd.font
+package dev.grogdunn.kwalksnailosd.osd.font
 
 sealed class FontFileException(message: String) : IllegalArgumentException(message) {
     class InvalidFontFileWidth(val width: Int) : FontFileException("Invalid font file width: $width")

@@ -1,4 +1,4 @@
-package dev.grogdunn.kwalksnailosd.font
+package dev.grogdunn.kwalksnailosd.osd.font
 
 enum class CharacterSize(
     val width: Int,

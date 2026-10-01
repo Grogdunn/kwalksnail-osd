@@ -3,8 +3,8 @@ package dev.grogdunn.kwalksnailosd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import dev.grogdunn.kwalksnailosd.font.FontFile
-import dev.grogdunn.kwalksnailosd.font.FontParser
+import dev.grogdunn.kwalksnailosd.osd.font.Font
+import dev.grogdunn.kwalksnailosd.osd.font.FontParser
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
@@ -25,7 +25,7 @@ data class AppUiState(
     val osdError: String? = null,
 
     val selectedFont: Path? = null,
-    val font: FontFile? = null,
+    val font: Font? = null,
     val videoInfo: VideoInfo? = null,
 )
 

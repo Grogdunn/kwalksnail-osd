@@ -1,18 +1,18 @@
-package dev.grogdunn.kwalksnailosd.font
+package dev.grogdunn.kwalksnailosd.osd.font
 
 import java.awt.image.BufferedImage
 import java.nio.file.Path
 import javax.imageio.ImageIO
 
 class FontParser {
-    fun parse(selectedFont: Path): FontFile {
+    fun parse(selectedFont: Path): Font {
         val fontImage = ImageIO.read(selectedFont.toFile())
             ?: throw IllegalArgumentException("Failed to decode image from path: $selectedFont")
 
         val (characterSize, fontType, characterCount) = detectDimensions(fontImage.width, fontImage.height)
         val characters = splitCharacters(fontImage, characterSize, fontType, characterCount)
 
-        return FontFile(
+        return Font(
             filePath = selectedFont,
             characterCount = characterCount,
             characterSize = characterSize,

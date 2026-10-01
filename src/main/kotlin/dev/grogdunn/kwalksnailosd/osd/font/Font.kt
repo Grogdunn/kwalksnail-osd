@@ -1,10 +1,10 @@
-package dev.grogdunn.kwalksnailosd.font
+package dev.grogdunn.kwalksnailosd.osd.font
 
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.nio.file.Path
 
-data class FontFile(
+data class Font(
     val filePath: Path,
     val characterCount: Int,
     val characterSize: CharacterSize,

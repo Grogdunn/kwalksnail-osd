@@ -1,4 +1,4 @@
-package dev.grogdunn.kwalksnailosd.font
+package dev.grogdunn.kwalksnailosd.osd.font
 
 data class FontDimensions(
     val size: CharacterSize,
