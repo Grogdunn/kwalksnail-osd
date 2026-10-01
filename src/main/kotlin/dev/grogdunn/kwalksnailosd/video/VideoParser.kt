@@ -12,7 +12,7 @@ class VideoParser {
     fun getVideoInfo(mp4: Path): VideoInfo {
         return FrameGrabber.createDefault(mp4.toFile()).use {
             it.start()
-            VideoInfo(it.imageHeight, it.imageWidth, it.videoCodecName, Duration.ofMillis(it.lengthInTime / 1000), it.frameRate, it.frameNumber)
+            VideoInfo(it.imageHeight, it.imageWidth, it.videoCodecName, Duration.ofMillis(it.lengthInTime / 1000), it.frameRate, it.lengthInFrames)
         }
     }
 

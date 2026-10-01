@@ -3,12 +3,15 @@ package dev.grogdunn.kwalksnailosd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
 import dev.grogdunn.kwalksnailosd.osd.font.Font
 import dev.grogdunn.kwalksnailosd.osd.font.FontParser
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import dev.grogdunn.kwalksnailosd.video.VideoParser
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,6 +30,8 @@ data class AppUiState(
     val selectedFont: Path? = null,
     val font: Font? = null,
     val videoInfo: VideoInfo? = null,
+    val selectedFrame: Float = 0.0f,
+    val bitmap: ImageBitmap? = null
 )
 
 class AppStateHolder(
@@ -34,6 +39,8 @@ class AppStateHolder(
     private val fontParser: FontParser = FontParser(),
     private val videoParser: VideoParser = VideoParser()
 ) {
+    private val logger = KotlinLogging.logger {}
+
     var state by mutableStateOf(AppUiState())
         private set
 
@@ -60,7 +67,6 @@ class AppStateHolder(
     }
 
     suspend fun parseSelectedFont() {
-        if (state.selectedFont == null) return
         val font = withContext(Dispatchers.IO) { state.selectedFont?.let { fontParser.parse(it) } }
         state = state.copy(font = font)
     }
@@ -84,6 +90,15 @@ class AppStateHolder(
         } finally {
             state = state.copy(isParsingOsd = false)
         }
+    }
+
+    fun onFrameSelected(selectedFrame: Float) {
+        logger.info { "onFrameSelected: $selectedFrame" }
+        val selectedFrameImage = state.selectedMp4?.let { videoParser.getFrame(it, selectedFrame.toInt()) }
+        state = state.copy(
+            selectedFrame = selectedFrame,
+            bitmap = selectedFrameImage?.toComposeImageBitmap()
+        )
     }
 
 }
