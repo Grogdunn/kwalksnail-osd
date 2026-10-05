@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
+import dev.grogdunn.kwalksnailosd.osd.OsdRenderer
 import dev.grogdunn.kwalksnailosd.osd.font.Font
 import dev.grogdunn.kwalksnailosd.osd.font.FontParser
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
@@ -93,11 +94,20 @@ class AppStateHolder(
     }
 
     fun onFrameSelected(selectedFrame: Float) {
+        val mp4 = state.selectedMp4 ?: return
+        val videoInfo = state.videoInfo ?: return
+        val osd = state.osd ?: return
+        val font = state.font ?: return
         logger.info { "onFrameSelected: $selectedFrame" }
-        val selectedFrameImage = state.selectedMp4?.let { videoParser.getFrame(it, selectedFrame.toInt()) }
+        val selectedFrameImage = videoParser.getVideoFrame(mp4, selectedFrame.toInt())
+        val frameTimestamp = selectedFrame / videoInfo.frameRate * 1000
+        val frame = osd.frames.findLast { it.timestampMillis <= frameTimestamp.toLong() }
+        frame ?: return
+
+        OsdRenderer().renderInPlace(selectedFrameImage, frame, font)
         state = state.copy(
             selectedFrame = selectedFrame,
-            bitmap = selectedFrameImage?.toComposeImageBitmap()
+            bitmap = selectedFrameImage.toComposeImageBitmap()
         )
     }
 

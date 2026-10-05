@@ -16,7 +16,7 @@ class VideoParser {
         }
     }
 
-    fun getFrame(mp4: Path, frameNumber: Int): BufferedImage {
+    fun getVideoFrame(mp4: Path, frameNumber: Int): BufferedImage {
         return FrameGrabber.createDefault(mp4.toFile()).use {
             it.start()
             it.frameNumber = frameNumber
