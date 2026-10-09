@@ -1,12 +1,14 @@
 package dev.grogdunn.kwalksnailosd
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -19,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -95,20 +98,26 @@ fun App() {
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                when {
-                    state.isParsingOsd -> Text("Parsing OSD file...")
-                    state.osdError != null -> Text("OSD parsing failed: ${state.osdError}")
-                    state.osd != null -> Text("OSD: ${state.osd.fcFirmware} Frames#: ${state.osd.frames.size} Duration: ${state.osd.duration}")
-                    else -> Text("No OSD file selected")
+//                Row {
+//                    when {
+//                        state.isParsingOsd -> Text("Parsing OSD file...")
+//                        state.osdError != null -> Text("OSD parsing failed: ${state.osdError}")
+//                        state.osd != null -> Text("OSD: ${state.osd.fcFirmware} Frames#: ${state.osd.frames.size} Duration: ${state.osd.duration}")
+//                        else -> Text("No OSD file selected")
+//                    }
+//                    Text("Video info: ${state.videoInfo}")
+//                }
+                Row (modifier = Modifier.background(Color.LightGray).fillMaxHeight(.9f).fillMaxWidth().padding(5.dp)){
+                    when {
+                        state.bitmap == null -> Text("No frame available")
+                        else -> Image(bitmap = state.bitmap, modifier = Modifier.fillMaxSize(), contentDescription = "Frame")
+                    }
                 }
-                Text("Video info: ${state.videoInfo}")
-                when {
-                    state.bitmap == null -> Text("No frame available")
-                    else -> Image(bitmap = state.bitmap, modifier = Modifier.fillMaxSize(), contentDescription = "Frame")
-                }
-                when {
-                    state.videoInfo == null -> Slider(value = state.selectedFrame, onValueChange = { stateHolder.onFrameSelected(it) }, valueRange = 0.0f..1.0f)
-                    else -> Slider(value = state.selectedFrame, onValueChange = { stateHolder.onFrameSelected(it) }, valueRange = 0.0f..state.videoInfo.frameNumber.toFloat())
+                Column(modifier = Modifier.height(50.dp).fillMaxWidth().padding(top = 1.dp, bottom = 1.dp)) {
+                    when {
+                        state.videoInfo == null -> Slider(value = state.selectedFrame, onValueChange = { stateHolder.onFrameSelected(it) }, valueRange = 0.0f..1.0f)
+                        else -> Slider(value = state.selectedFrame, onValueChange = { stateHolder.onFrameSelected(it) }, valueRange = 0.0f..state.videoInfo.frameNumber.toFloat())
+                    }
                 }
 
             }
