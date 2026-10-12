@@ -27,6 +27,7 @@ import androidx.compose.material.Slider
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -50,8 +51,17 @@ fun main() = application {
     val stateHolder = remember { AppStateHolder() }
     val windowState = rememberWindowState(width = 1280.dp, height = 800.dp)
 
+    DisposableEffect(stateHolder) {
+        onDispose {
+            stateHolder.close()
+        }
+    }
+
     Window(
-        onCloseRequest = ::exitApplication,
+        onCloseRequest = {
+            stateHolder.close()
+            exitApplication()
+        },
         title = "Walksnail OSD",
         state = windowState
     ) {
@@ -70,7 +80,10 @@ fun main() = application {
                     desktopFileDialog(allowedExtensions = listOf("png"), onCloseRequest = stateHolder::onFontFilePickerClosed)
                 })
                 Separator()
-                Item("Esci", onClick = ::exitApplication)
+                Item("Esci", onClick = {
+                    stateHolder.close()
+                    exitApplication()
+                })
             }
         }
 

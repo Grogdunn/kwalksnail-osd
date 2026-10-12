@@ -39,7 +39,7 @@ class AppStateHolder(
     private val osdParser: OsdParser = OsdParser(),
     private val fontParser: FontParser = FontParser(),
     private val videoParser: VideoParser = VideoParser()
-) {
+) : AutoCloseable {
     private val logger = KotlinLogging.logger {}
 
     var state by mutableStateOf(AppUiState())
@@ -51,13 +51,18 @@ class AppStateHolder(
         val relatedFiles = lookupFiles(path)
         val selectedOsd = if (path.extension.equals("osd", ignoreCase = true)) path else state.selectedOsd ?: relatedFiles.osdPath
         val osdChanged = selectedOsd != state.selectedOsd
+        val selectedMp4 = if (path.extension.equals("mp4", ignoreCase = true)) path else state.selectedMp4 ?: relatedFiles.mp4Path
+        val mp4Changed = selectedMp4 != state.selectedMp4
         state = state.copy(
-            selectedMp4 = if (path.extension.equals("mp4", ignoreCase = true)) path else state.selectedMp4 ?: relatedFiles.mp4Path,
+            selectedMp4 = selectedMp4,
             selectedOsd = selectedOsd,
             selectedSrt = state.selectedSrt ?: relatedFiles.srtPath,
             osd = if (osdChanged) null else state.osd,
             isParsingOsd = !osdChanged && state.isParsingOsd,
             osdError = if (osdChanged) null else state.osdError,
+            videoInfo = if (mp4Changed) null else state.videoInfo,
+            bitmap = if (mp4Changed) null else state.bitmap,
+            selectedFrame = if (mp4Changed) 0.0f else state.selectedFrame
         )
     }
 
@@ -73,7 +78,15 @@ class AppStateHolder(
     }
 
     suspend fun parseSelectedMp4() {
-        val videoInfo = withContext(Dispatchers.IO) { state.selectedMp4?.let { videoParser.getVideoInfo(it) } }
+        val mp4 = state.selectedMp4
+        val videoInfo = withContext(Dispatchers.IO) {
+            if (mp4 != null) {
+                videoParser.getVideoInfo(mp4)
+            } else {
+                videoParser.close()
+                null
+            }
+        }
         state = state.copy(videoInfo = videoInfo)
     }
 
@@ -99,7 +112,7 @@ class AppStateHolder(
         val osd = state.osd ?: return
         val font = state.font ?: return
         logger.info { "onFrameSelected: $selectedFrame" }
-        val selectedFrameImage = videoParser.getVideoFrame(mp4, selectedFrame.toInt())
+        val selectedFrameImage = videoParser.getVideoFrame(mp4, selectedFrame.toInt()) ?: return
         val frameTimestamp = selectedFrame / videoInfo.frameRate * 1000
         val frame = osd.frames.findLast { it.timestampMillis <= frameTimestamp.toLong() }
         frame ?: return
@@ -111,4 +124,7 @@ class AppStateHolder(
         )
     }
 
+    override fun close() {
+        videoParser.close()
+    }
 }
