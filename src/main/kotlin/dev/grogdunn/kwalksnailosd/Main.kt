@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
@@ -100,7 +99,7 @@ fun App(stateHolder: AppStateHolder = remember { AppStateHolder() }) {
             // Area Principale (Sidebar + Preview e Slider)
             Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 // Barra laterale per la gestione dei file e informazioni
-                SidebarPanel(
+                LeftSidebarPanel(
                     stateHolder = stateHolder,
                     modifier = Modifier.width(320.dp).fillMaxHeight()
                 )
@@ -111,6 +110,11 @@ fun App(stateHolder: AppStateHolder = remember { AppStateHolder() }) {
                 VideoPreviewAndControls(
                     stateHolder = stateHolder,
                     modifier = Modifier.weight(1f).fillMaxHeight()
+                )
+                Divider(modifier = Modifier.fillMaxHeight().width(1.dp))
+                RightSidebarPanel(
+                    stateHolder = stateHolder,
+                    modifier = Modifier.width(320.dp).fillMaxHeight()
                 )
             }
 
@@ -126,7 +130,7 @@ fun App(stateHolder: AppStateHolder = remember { AppStateHolder() }) {
 }
 
 @Composable
-private fun SidebarPanel(
+private fun LeftSidebarPanel(
     stateHolder: AppStateHolder,
     modifier: Modifier = Modifier
 ) {
@@ -179,9 +183,25 @@ private fun SidebarPanel(
                 desktopFileDialog(allowedExtensions = listOf("png"), onCloseRequest = stateHolder::onFontFilePickerClosed)
             }
         )
+    }
+}
 
-        Divider(modifier = Modifier.padding(vertical = 4.dp))
 
+@Composable
+private fun RightSidebarPanel(
+    stateHolder: AppStateHolder,
+    modifier: Modifier = Modifier
+) {
+    val state = stateHolder.state
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = modifier
+            .background(MaterialTheme.colors.background)
+            .padding(12.dp)
+            .verticalScroll(scrollState),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         Text(
             text = "Dettagli Video & OSD",
             style = MaterialTheme.typography.subtitle1,
@@ -478,12 +498,15 @@ private fun StatusBar(
                         CircularProgressIndicator(modifier = Modifier.height(12.dp).width(12.dp), strokeWidth = 2.dp)
                         Text("Analisi OSD in corso...", style = MaterialTheme.typography.caption)
                     }
+
                     state.osdError != null -> {
                         Text("Errore OSD: ${state.osdError}", style = MaterialTheme.typography.caption, color = MaterialTheme.colors.error)
                     }
+
                     state.selectedMp4 != null -> {
                         Text("Video caricato: ${state.selectedMp4.fileName}", style = MaterialTheme.typography.caption)
                     }
+
                     else -> {
                         Text("Pronto - Nessun video caricato", style = MaterialTheme.typography.caption, color = Color.Gray)
                     }
