@@ -280,6 +280,10 @@ private fun RightSidebarPanel(
                 onClick = {
                     TODO()
                 },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = Color.Red,
+                    contentColor = Color.Black
+                ),
                 enabled = state.osd != null && state.selectedMp4 != null && state.selectedFont != null && state.selectedSrt != null
             ) {
                 Text("Burn", fontSize = 12.sp)
