@@ -230,7 +230,7 @@ private fun RightSidebarPanel(
 
             if (state.videoInfo != null) {
                 Card(
-                    elevation = 1.dp,
+                    elevation = 0.dp,
                     modifier = Modifier.fillMaxWidth(),
                     backgroundColor = MaterialTheme.colors.surface
                 ) {
@@ -247,7 +247,7 @@ private fun RightSidebarPanel(
 
             if (state.osd != null) {
                 Card(
-                    elevation = 1.dp,
+                    elevation = 0.dp,
                     modifier = Modifier.fillMaxWidth(),
                     backgroundColor = MaterialTheme.colors.surface
                 ) {
