@@ -212,53 +212,78 @@ private fun RightSidebarPanel(
         modifier = modifier
             .background(MaterialTheme.colors.background)
             .padding(12.dp)
-            .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .fillMaxHeight(),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = "Dettagli Video & OSD",
-            style = MaterialTheme.typography.subtitle1,
-            fontWeight = FontWeight.Bold
-        )
-
-        if (state.videoInfo != null) {
-            Card(
-                elevation = 1.dp,
-                modifier = Modifier.fillMaxWidth(),
-                backgroundColor = MaterialTheme.colors.surface
-            ) {
-                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Video:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.caption)
-                    Text("Risoluzione: ${state.videoInfo.width}x${state.videoInfo.height}", style = MaterialTheme.typography.body2)
-                    Text("Frame Rate: ${"%.2f".format(state.videoInfo.frameRate)} fps", style = MaterialTheme.typography.body2)
-                    Text("Totale Frame: ${state.videoInfo.frameNumber}", style = MaterialTheme.typography.body2)
-                    Text("Durata: ${formatDuration(state.videoInfo.duration)}", style = MaterialTheme.typography.body2)
-                    Text("Codec: ${state.videoInfo.codec}", style = MaterialTheme.typography.body2)
-                }
-            }
-        }
-
-        if (state.osd != null) {
-            Card(
-                elevation = 1.dp,
-                modifier = Modifier.fillMaxWidth(),
-                backgroundColor = MaterialTheme.colors.surface
-            ) {
-                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("OSD:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.caption)
-                    Text("Firmware: ${state.osd.fcFirmware}", style = MaterialTheme.typography.body2)
-                    Text("Frame registrati: ${state.osd.frames.size}", style = MaterialTheme.typography.body2)
-                    Text("Durata OSD: ${formatDuration(state.osd.duration)}", style = MaterialTheme.typography.body2)
-                }
-            }
-        }
-
-        if (state.videoInfo == null && state.osd == null) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text(
-                text = "Carica i file sorgente per visualizzare i dettagli tecnici.",
-                style = MaterialTheme.typography.caption,
-                color = Color.Gray
+                text = "Dettagli Video & OSD",
+                style = MaterialTheme.typography.subtitle1,
+                fontWeight = FontWeight.Bold
             )
+
+            if (state.videoInfo != null) {
+                Card(
+                    elevation = 1.dp,
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = MaterialTheme.colors.surface
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Video:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.caption)
+                        Text("Risoluzione: ${state.videoInfo.width}x${state.videoInfo.height}", style = MaterialTheme.typography.body2)
+                        Text("Frame Rate: ${"%.2f".format(state.videoInfo.frameRate)} fps", style = MaterialTheme.typography.body2)
+                        Text("Totale Frame: ${state.videoInfo.frameNumber}", style = MaterialTheme.typography.body2)
+                        Text("Durata: ${formatDuration(state.videoInfo.duration)}", style = MaterialTheme.typography.body2)
+                        Text("Codec: ${state.videoInfo.codec}", style = MaterialTheme.typography.body2)
+                    }
+                }
+            }
+
+            if (state.osd != null) {
+                Card(
+                    elevation = 1.dp,
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = MaterialTheme.colors.surface
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("OSD:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.caption)
+                        Text("Firmware: ${state.osd.fcFirmware}", style = MaterialTheme.typography.body2)
+                        Text("Frame registrati: ${state.osd.frames.size}", style = MaterialTheme.typography.body2)
+                        Text("Durata OSD: ${formatDuration(state.osd.duration)}", style = MaterialTheme.typography.body2)
+                    }
+                }
+            }
+
+            if (state.videoInfo == null && state.osd == null) {
+                Text(
+                    text = "Carica i file sorgente per visualizzare i dettagli tecnici.",
+                    style = MaterialTheme.typography.caption,
+                    color = Color.Gray
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                onClick = {
+                    TODO()
+                },
+                enabled = state.osd != null && state.selectedMp4 != null && state.selectedFont != null && state.selectedSrt != null
+            ) {
+                Text("Burn", fontSize = 12.sp)
+            }
         }
     }
 }
@@ -272,7 +297,7 @@ private fun FileSelectorCard(
     onSelectClick: () -> Unit
 ) {
     Card(
-        elevation = 2.dp,
+        elevation = 0.dp,
         modifier = Modifier.fillMaxWidth(),
         backgroundColor = MaterialTheme.colors.surface
     ) {
