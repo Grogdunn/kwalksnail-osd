@@ -6,15 +6,29 @@ import java.awt.image.BufferedImage
 
 class OsdRenderer {
 
+    fun characterSizeForFrameHeight(frameHeight: Int): CharacterSize =
+        CharacterSize.entries.firstOrNull { it.height * GRID_ROWS == frameHeight }
+            ?: CharacterSize.LARGE
+
     fun renderInPlace(image: BufferedImage, frame: Frame, font: Font) {
+        val characterSize = characterSizeForFrameHeight(image.height)
         val graphics = image.createGraphics()
-        frame.glyphs.forEach { glyph ->
-            font.getCharacter(glyph.index, CharacterSize.LARGE)?.let { character ->
-                graphics.apply {
-                    drawImage(character, glyph.position.x * character.width, glyph.position.y * character.height, null)
-                }
+        try {
+            frame.glyphs.forEach { glyph ->
+                val character = font.getCharacter(glyph.index, characterSize) ?: return@forEach
+                graphics.drawImage(
+                    character,
+                    glyph.position.x * character.width,
+                    glyph.position.y * character.height,
+                    null,
+                )
             }
+        } finally {
+            graphics.dispose()
         }
-        graphics.dispose()
+    }
+
+    private companion object {
+        const val GRID_ROWS = 20
     }
 }
