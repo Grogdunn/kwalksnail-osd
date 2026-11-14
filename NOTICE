@@ -1,0 +1,102 @@
+kwalksnail-osd
+Copyright (C) 2026 Lorenzo Caenazzo
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License, version 3, as
+published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+The license text is the file LICENSE in the root of this repository.
+This program is released under version 3 of that license only.
+There is no grant to use a later version.
+
+Modified work
+-------------
+
+This program is based on Walksnail OSD Tool:
+
+https://github.com/avsaase/walksnail-osd-tool
+
+Walksnail OSD Tool is free software under the GNU General Public
+License version 3. Its Cargo.toml names Alexander van Saase as the
+author and identifies the license as GPL-3.0, with no "or any later
+version" grant. The Git history of that repository (2023 through
+2 March 2026) records these contributors:
+
+- Alexander van Saase (https://github.com/avsaase)
+- Maksym Motorny (https://github.com/mmotorny)
+- Janez Troha (https://github.com/dz0ny)
+- Marcelo Bezerra (https://github.com/mmosca)
+- Viacheslav Zhivetyev (https://github.com/vmzhivetyev)
+
+The last release of Walksnail OSD Tool is v0.3.0, published on
+23 March 2024. That project is no longer maintained.
+
+The Kotlin program in this repository was first committed in
+September 2026. This notice was added on 14 November 2026.
+
+What this program takes from Walksnail OSD Tool
+------------------------------------------------
+
+The Kotlin sources translate, into another language, the OSD and font
+logic in that project, mainly backend/src/osd and backend/src/font:
+
+- The Walksnail .osd container. A 40-byte header, whose first four
+  bytes are a flight-controller tag (BTFL, INAV, ARDU, KISS, or ULTR),
+  followed by frames. Each frame is a 4-byte little-endian timestamp
+  and a 53 by 20 grid of little-endian 16-bit glyph indexes. Indexes
+  0x00 and 0x20 are empty. The duration is estimated from the first
+  timestamp and the last timestamp.
+- The PNG OSD font atlas. Tile sizes 18x27, 24x36, 36x54, 48x72, and
+  72x108. One to four horizontal pages (standard, two-page,
+  three-page, and four-color). 256 tiles per page. The same checks
+  for an invalid width and an invalid height.
+- Placement of each glyph on the video frame at grid position times
+  tile size. The tile size follows the frame height (540, 720, 1080,
+  1440, or 2160).
+
+The desktop interface, the video reader, and the packaging are written
+for this repository. They are a separate implementation from the Rust
+egui application. This repository does not contain that project's
+Rust sources.
+
+What this repository does not take from Walksnail OSD Tool
+----------------------------------------------------------
+
+No font files, application icons, or FFmpeg binaries from
+avsaase/walksnail-osd-tool are included here. An OSD font is a PNG
+file that the user supplies.
+
+That project's resources/fonts directory contains Inter-Regular.ttf,
+AzeretMono-Regular.ttf, and SourceCodePro-Regular.ttf, used for its
+own user interface, plus resources/fonts/OFL.txt. The copyright line
+in that OFL file names the Inter Project Authors (2020) and the SIL
+Open Font License 1.1. The same file does not name Azeret Mono or
+Source Code Pro. Those files were not copied into this repository,
+and this notice does not state a license for them.
+
+Other third-party material
+--------------------------
+
+.cursor/skills/pstack is an unmodified copy of pstack 0.15.36
+(commit bb68f2365eceafa0cb2d253112f675acf5f144cc).
+Copyright (c) 2026 Lauren Tan.
+The MIT License is in .cursor/skills/pstack/LICENSE.
+pstack is developer tooling. It is not linked into the desktop
+application. The GPL of this program does not replace that MIT
+license. .cursor/LICENSE is the same MIT text.
+
+Packaged builds download org.bytedeco:ffmpeg version 8.1.2-1.5.14
+(the artifact without a gpl classifier) and include those native
+libraries so the app can read video. This repository does not vendor
+those binaries or the FFmpeg source. The libraries keep the license
+Bytedeco publishes for that artifact:
+
+https://github.com/bytedeco/javacpp-presets/blob/master/ffmpeg/LICENSE.md
