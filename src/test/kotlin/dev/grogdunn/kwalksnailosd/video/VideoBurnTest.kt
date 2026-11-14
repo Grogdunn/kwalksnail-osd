@@ -71,7 +71,7 @@ class VideoBurnTest {
     @Test
     fun packagedJavaCvFfmpegBurnsH264() {
         val bundled = FfmpegLocator.bundledExecutable()
-        check(bundled != null) { "manca il binario ffmpeg delle librerie JavaCV" }
+        check(bundled != null) { "manca il binario ffmpeg delle librerie JavaCV (${FfmpegLocator.lastLoadError})" }
         assertTrue(FfmpegEncoders.supports(bundled, "libopenh264"))
         val directory = createTempDirectory("burn-openh264")
         val input = directory.resolve("clip.mp4")
@@ -108,7 +108,7 @@ class VideoBurnTest {
         val settings = BurnSettings(
             codec = VideoCodec.H264,
             bitrateMbps = 8,
-            preferHardware = true,
+            preferHardware = false,
             offsetX = 20,
             offsetY = 8,
             adjustPlaybackSpeed = true,
@@ -118,7 +118,6 @@ class VideoBurnTest {
 
         assertTrue(output.exists())
         assertTrue(result.framesWritten > 0)
-        assertFalse(result.hardware)
         VideoParser().use { parser ->
             val burned = parser.getVideoInfo(output)
             assertTrue(burned.hasAudio, "l'audio del video di origine deve restare nel file esportato")

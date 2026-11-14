@@ -62,9 +62,21 @@ class FfmpegLocator(
             return if (Files.isRegularFile(path)) path else null
         }
 
+        @Volatile
+        var lastLoadError: String? = null
+            private set
+
         private fun loadBundledOrNull(): Path? = try {
-            Path.of(org.bytedeco.javacpp.Loader.load(org.bytedeco.ffmpeg.ffmpeg::class.java))
-        } catch (_: Throwable) {
+            val path = Path.of(org.bytedeco.javacpp.Loader.load(org.bytedeco.ffmpeg.ffmpeg::class.java))
+            if (Files.isRegularFile(path)) {
+                lastLoadError = null
+                path
+            } else {
+                lastLoadError = "estratto ma non è un file: $path"
+                null
+            }
+        } catch (failure: Throwable) {
+            lastLoadError = failure.javaClass.simpleName + ": " + (failure.message ?: failure.toString())
             null
         }
 
