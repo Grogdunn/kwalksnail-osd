@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package (${{ matrix.archive }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            archive: walksnail-osd-windows-x64
+            launcher: Walksnail-osd.exe
+            native: windows-x86_64
+          - os: macos-latest
+            archive: walksnail-osd-macos-arm64
+            launcher: Walksnail-osd.app/Contents/MacOS/Walksnail-osd
+            native: macosx-arm64
+          - os: macos-15-intel
+            archive: walksnail-osd-macos-x64
+            launcher: Walksnail-osd.app/Contents/MacOS/Walksnail-osd
+            native: macosx-x86_64
+          - os: ubuntu-latest
+            archive: walksnail-osd-linux-x64
+            launcher: bin/Walksnail-osd
+            native: linux-x86_64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Package version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+){1,3}$ ]]; then
+              echo "Tag ${GITHUB_REF_NAME} must look like v1.2.3 so jpackage can use it as a version."
+              exit 1
+            fi
+          else
+            version="1.0.0"
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build app image
+        run: ./gradlew createDistributable --stacktrace -PappVersion=${{ steps.version.outputs.value }}
+
+      - name: Zip app image
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd build/compose/binaries/main/app
+          out="$GITHUB_WORKSPACE/${{ matrix.archive }}.zip"
+          case "$(uname -s)" in
+            Darwin)
+              ditto -c -k --keepParent *.app "$out"
+              ;;
+            MINGW*|MSYS*|CYGWIN*)
+              powershell.exe -NoProfile -Command "Compress-Archive -Path (Get-ChildItem -Force).FullName -DestinationPath '$out'"
+              ;;
+            *)
+              zip -r "$out" .
+              ;;
+          esac
+
+      - name: Check archive contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v python3 >/dev/null 2>&1; then
+            py=python3
+          else
+            py=python
+          fi
+          "$py" - "${{ matrix.archive }}.zip" "${{ matrix.launcher }}" "${{ matrix.native }}" << 'PY'
+          import sys
+          import zipfile
+          path, *required = sys.argv[1:]
+          names = zipfile.ZipFile(path).namelist()
+          missing = [item for item in required if not any(item in name for name in names)]
+          if missing:
+              raise SystemExit("missing %s\n%s" % (missing, "\n".join(names[:30])))
+          print("ok %s entries %d" % (path, len(names)))
+          PY
+
+      - name: Upload app image
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive }}
+          path: ${{ matrix.archive }}.zip
+          if-no-files-found: error
+
+  release:
+    name: Draft GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download app images
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: dist/*
