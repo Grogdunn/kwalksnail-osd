@@ -300,7 +300,7 @@ class VideoBurner(
 
     private fun startProcess(command: List<String>): Process =
         try {
-            ProcessBuilder(command).start()
+            ProcessBuilder(command).forBundledFfmpeg(ffmpeg).start()
         } catch (failure: Exception) {
             throw VideoBurnException("Impossibile avviare ffmpeg ($ffmpeg): ${failure.message}", failure)
         }

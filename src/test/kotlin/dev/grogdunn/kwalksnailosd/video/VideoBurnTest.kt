@@ -72,7 +72,8 @@ class VideoBurnTest {
     fun packagedJavaCvFfmpegBurnsH264() {
         val bundled = FfmpegLocator.bundledExecutable()
         check(bundled != null) { "manca il binario ffmpeg delle librerie JavaCV (${FfmpegLocator.lastLoadError})" }
-        assertTrue(FfmpegEncoders.supports(bundled, "libopenh264"))
+        val openH264 = FfmpegEncoders.supports(bundled, "libopenh264")
+        assertTrue(openH264, FfmpegEncoders.lastFailure ?: "libopenh264 assente")
         val directory = createTempDirectory("burn-openh264")
         val input = directory.resolve("clip.mp4")
         renderTestSrc(bundled, input, width = 160, height = 90, fps = 10, seconds = 1, withAudio = false)
@@ -258,7 +259,7 @@ private fun extractFrame(ffmpeg: Path, video: Path, frameIndex: Int, png: Path):
 }
 
 private fun runFfmpeg(command: List<String>) {
-    val process = ProcessBuilder(command).redirectErrorStream(true).start()
+    val process = ProcessBuilder(command).forBundledFfmpeg(Path.of(command.first())).redirectErrorStream(true).start()
     val log = process.inputStream.readBytes().decodeToString()
     val code = process.waitFor()
     if (code != 0) error("ffmpeg exit $code\n$log")
