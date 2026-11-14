@@ -14,6 +14,7 @@ This project is independent of Walksnail and Caddx.
 - Shows the video resolution, frame rate, frame count, duration, and codec.
 - Shows the flight-controller tag, the number of OSD frames, and the OSD duration.
 - Writes a new MP4 with the OSD drawn into the frames, and keeps the audio.
+- Draws the Walksnail `.srt` fields you choose on the preview and on the burned video.
 
 The downloadable builds include a Java runtime and the FFmpeg libraries used to read the video and to write H.264. You do not install Java. H.265 export needs an `ffmpeg` on your PATH that includes `libx265`. The bundled libraries do not include that encoder.
 
@@ -33,11 +34,11 @@ The encoder is the `ffmpeg` binary from the JavaCV native libraries, the same bi
 
 For H.264 the app prefers `libx264` when the chosen binary has it, and otherwise uses `libopenh264` from the JavaCV build. OpenH264 follows the requested bitrate less closely. H.265 needs `libx265`.
 
-## Coming soon
+## SRT overlay
 
-The SRT overlay is in progress. It will draw data from the Walksnail `.srt` file on the preview and on the burned video.
+A Walksnail `.srt` adds flight time, sky and ground battery, signal, latency, bitrate, and distance to the preview and to the burned video. Position is a percentage of the frame, from 0 to 100. Scale runs from 10 to 60 and is relative to a frame height of 1080. Each field can be hidden. Distance turns itself off when no cue reports a distance above zero.
 
-The window already shows a field for the `.srt` file. In the current build that file is not drawn.
+The text is opaque light gray. Walksnail OSD Tool draws the same color with alpha 10. The vertical position is the top of the text.
 
 ## Screenshots
 

@@ -14,6 +14,11 @@ import dev.grogdunn.kwalksnailosd.osd.osdFrameAt
 import dev.grogdunn.kwalksnailosd.osd.osdHorizontalOffset
 import dev.grogdunn.kwalksnailosd.osd.osdPlaybackSpeedFactor
 import dev.grogdunn.kwalksnailosd.osd.osdVerticalOffset
+import dev.grogdunn.kwalksnailosd.srt.SrtFile
+import dev.grogdunn.kwalksnailosd.srt.SrtOptions
+import dev.grogdunn.kwalksnailosd.srt.SrtOverlay
+import dev.grogdunn.kwalksnailosd.srt.SrtParser
+import dev.grogdunn.kwalksnailosd.srt.srtCueAt
 import dev.grogdunn.kwalksnailosd.video.BurnSettings
 import dev.grogdunn.kwalksnailosd.video.FfmpegLocator
 import dev.grogdunn.kwalksnailosd.video.VideoBurner
@@ -33,6 +38,7 @@ import kotlinx.coroutines.withContext
 import java.nio.file.Path
 import javax.swing.SwingUtilities
 import kotlin.io.path.extension
+import kotlin.math.roundToInt
 
 data class AppUiState(
     val selectedMp4: Path? = null,
@@ -58,10 +64,15 @@ data class AppUiState(
     val burnProgress: Float = 0f,
     val burnMessage: String? = null,
     val burnError: String? = null,
+    val srt: SrtFile? = null,
+    val isParsingSrt: Boolean = false,
+    val srtError: String? = null,
+    val srtOptions: SrtOptions = SrtOptions(),
 )
 
 class AppStateHolder(
     private val osdParser: OsdParser = OsdParser(),
+    private val srtParser: SrtParser = SrtParser(),
     private val fontParser: FontParser = FontParser(),
     private val videoParser: VideoParser = VideoParser()
 ) : AutoCloseable {
@@ -83,13 +94,18 @@ class AppStateHolder(
         val osdChanged = selectedOsd != state.selectedOsd
         val selectedMp4 = if (path.extension.equals("mp4", ignoreCase = true)) path else state.selectedMp4 ?: relatedFiles.mp4Path
         val mp4Changed = selectedMp4 != state.selectedMp4
+        val selectedSrt = if (path.extension.equals("srt", ignoreCase = true)) path else state.selectedSrt ?: relatedFiles.srtPath
+        val srtChanged = selectedSrt != state.selectedSrt
         state = state.copy(
             selectedMp4 = selectedMp4,
             selectedOsd = selectedOsd,
-            selectedSrt = state.selectedSrt ?: relatedFiles.srtPath,
+            selectedSrt = selectedSrt,
             osd = if (osdChanged) null else state.osd,
             isParsingOsd = !osdChanged && state.isParsingOsd,
             osdError = if (osdChanged) null else state.osdError,
+            srt = if (srtChanged) null else state.srt,
+            isParsingSrt = !srtChanged && state.isParsingSrt,
+            srtError = if (srtChanged) null else state.srtError,
             videoInfo = if (mp4Changed) null else state.videoInfo,
             bitmap = if (mp4Changed) null else state.bitmap,
             selectedFrame = if (mp4Changed) 0.0f else state.selectedFrame
@@ -120,6 +136,23 @@ class AppStateHolder(
         state = state.copy(videoInfo = videoInfo)
     }
 
+    suspend fun parseSelectedSrt() {
+        val path = state.selectedSrt ?: return
+        state = state.copy(srt = null, isParsingSrt = true, srtError = null)
+        try {
+            val parsed = withContext(Dispatchers.IO) { srtParser.parse(path) }
+            val options = state.srtOptions.copy(showDistance = state.srtOptions.showDistance && parsed.hasDistance)
+            state = state.copy(srt = parsed, srtOptions = options)
+            rerenderCurrentFrame()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            state = state.copy(srt = null, srtError = exception.message ?: "Impossibile leggere il file SRT")
+        } finally {
+            state = state.copy(isParsingSrt = false)
+        }
+    }
+
     suspend fun parseSelectedOsd() {
         if (state.selectedOsd == null) return
 
@@ -145,6 +178,7 @@ class AppStateHolder(
         logger.info { "onFrameSelected: $selectedFrame" }
         val selectedFrameImage = videoParser.getVideoFrame(mp4, selectedFrame.toInt()) ?: return
         osdRenderer.renderInPlace(selectedFrameImage, osdFrame, font, state.osdOffsetX, state.osdOffsetY)
+        drawSrt(selectedFrameImage, videoInfo, selectedFrame)
         state = state.copy(
             selectedFrame = selectedFrame,
             bitmap = selectedFrameImage.toComposeImageBitmap()
@@ -189,6 +223,21 @@ class AppStateHolder(
         state = state.copy(preferHardwareEncoder = enabled)
     }
 
+    fun setSrtOptions(options: SrtOptions) {
+        val normalized = options.copy(
+            xPercent = ((options.xPercent * 10f).roundToInt() / 10f).coerceIn(0f, 100f),
+            yPercent = ((options.yPercent * 10f).roundToInt() / 10f).coerceIn(0f, 100f),
+            scale = options.scale.roundToInt().toFloat().coerceIn(10f, 60f),
+        )
+        if (normalized == state.srtOptions) return
+        state = state.copy(srtOptions = normalized)
+        rerenderCurrentFrame()
+    }
+
+    fun resetSrtPlacement() {
+        setSrtOptions(state.srtOptions.copy(xPercent = 1.5f, yPercent = 95f, scale = 35f))
+    }
+
     fun startBurn(output: Path) {
         if (state.isBurning) return
         val mp4 = state.selectedMp4 ?: return
@@ -203,6 +252,8 @@ class AppStateHolder(
             offsetY = state.osdOffsetY,
             adjustPlaybackSpeed = state.adjustOsdPlaybackSpeed,
         )
+        val srt = state.srt
+        val srtOptions = state.srtOptions
         val generation = ++burnGeneration
         state = state.copy(isBurning = true, burnProgress = 0f, burnMessage = "Avvio dell'export…", burnError = null)
         burnJob = scope.launch {
@@ -218,6 +269,8 @@ class AppStateHolder(
                         settings = settings,
                         onProgress = { progress -> publishBurn(generation, progress.fraction, progress.message) },
                         isCancelled = { !burnScope.isActive },
+                        srt = srt,
+                        srtOptions = srtOptions,
                     )
                 }
                 SwingUtilities.invokeLater {
@@ -275,6 +328,14 @@ class AppStateHolder(
                 osdPlaybackSpeedFactor(videoInfo.duration, osd.duration, state.adjustOsdPlaybackSpeed),
             )
         }
+
+    private fun drawSrt(image: java.awt.image.BufferedImage, videoInfo: VideoInfo, selectedFrame: Float) {
+        val srt = state.srt ?: return
+        if (videoInfo.frameRate <= 0.0) return
+        val cue = srtCueAt(srt.cues, selectedFrame / videoInfo.frameRate * 1000.0) ?: return
+        val data = cue.data ?: return
+        SrtOverlay.draw(image, data, state.srtOptions)
+    }
 
     private fun rerenderCurrentFrame() {
         if (state.selectedMp4 == null || state.videoInfo == null || state.osd == null || state.font == null) return

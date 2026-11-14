@@ -112,6 +112,10 @@ fun App(stateHolder: AppStateHolder = remember { AppStateHolder() }) {
         state.selectedFont?.let { stateHolder.parseSelectedFont() }
     }
 
+    LaunchedEffect(state.selectedSrt) {
+        state.selectedSrt?.let { stateHolder.parseSelectedSrt() }
+    }
+
     MaterialTheme {
         Column(modifier = Modifier.fillMaxSize()) {
             // Area Principale (Sidebar + Preview e Slider)
@@ -189,6 +193,8 @@ private fun LeftSidebarPanel(
         FileSelectorCard(
             title = "Sottotitoli (.srt)",
             fileName = state.selectedSrt?.fileName?.toString(),
+            isLoading = state.isParsingSrt,
+            errorMessage = state.srtError,
             onSelectClick = {
                 desktopFileDialog(allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
             }
@@ -273,12 +279,73 @@ private fun RightSidebarPanel(
                 )
             }
 
+            SrtOverlayOptions(stateHolder = stateHolder)
             BurnOptions(stateHolder = stateHolder)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         BurnStatusAndButton(stateHolder = stateHolder)
+    }
+}
+
+@Composable
+private fun SrtOverlayOptions(stateHolder: AppStateHolder) {
+    val state = stateHolder.state
+    val options = state.srtOptions
+    val enabled = !state.isBurning && state.srt != null
+    val distanceEnabled = enabled && state.srt.hasDistance
+
+    Text("Dati SRT", style = MaterialTheme.typography.subtitle2, fontWeight = FontWeight.Bold)
+    Text(
+        text = if (state.srt == null) {
+            "Carica un .srt Walksnail per disegnare tempo di volo, batterie, segnale, latenza, bitrate e distanza."
+        } else {
+            "${state.srt.cues.size} cue" + if (state.srt.hasDistance) ", con distanza" else ", senza distanza"
+        },
+        style = MaterialTheme.typography.caption,
+        color = Color.Gray
+    )
+    Text("Posizione X: ${"%.1f".format(options.xPercent)}%", style = MaterialTheme.typography.caption)
+    Slider(
+        value = options.xPercent,
+        onValueChange = { stateHolder.setSrtOptions(options.copy(xPercent = it)) },
+        valueRange = 0f..100f,
+        enabled = enabled,
+    )
+    Text("Posizione Y: ${"%.1f".format(options.yPercent)}%", style = MaterialTheme.typography.caption)
+    Slider(
+        value = options.yPercent,
+        onValueChange = { stateHolder.setSrtOptions(options.copy(yPercent = it)) },
+        valueRange = 0f..100f,
+        enabled = enabled,
+    )
+    Text("Scala: ${"%.0f".format(options.scale)}", style = MaterialTheme.typography.caption)
+    Slider(
+        value = options.scale,
+        onValueChange = { stateHolder.setSrtOptions(options.copy(scale = it)) },
+        valueRange = 10f..60f,
+        enabled = enabled,
+    )
+    OutlinedButton(onClick = stateHolder::resetSrtPlacement, enabled = enabled) {
+        Text("Posizione predefinita", fontSize = 12.sp)
+    }
+    SrtFieldCheckbox("Tempo di volo", options.showTime, enabled) { stateHolder.setSrtOptions(options.copy(showTime = it)) }
+    SrtFieldCheckbox("Batteria sky", options.showSkyBattery, enabled) { stateHolder.setSrtOptions(options.copy(showSkyBattery = it)) }
+    SrtFieldCheckbox("Batteria ground", options.showGroundBattery, enabled) { stateHolder.setSrtOptions(options.copy(showGroundBattery = it)) }
+    SrtFieldCheckbox("Segnale", options.showSignal, enabled) { stateHolder.setSrtOptions(options.copy(showSignal = it)) }
+    SrtFieldCheckbox("Latenza", options.showLatency, enabled) { stateHolder.setSrtOptions(options.copy(showLatency = it)) }
+    SrtFieldCheckbox("Bitrate", options.showBitrate, enabled) { stateHolder.setSrtOptions(options.copy(showBitrate = it)) }
+    SrtFieldCheckbox("Distanza", options.showDistance, distanceEnabled) {
+        stateHolder.setSrtOptions(options.copy(showDistance = it))
+    }
+}
+
+@Composable
+private fun SrtFieldCheckbox(label: String, checked: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        Text(label, style = MaterialTheme.typography.body2)
     }
 }
 
