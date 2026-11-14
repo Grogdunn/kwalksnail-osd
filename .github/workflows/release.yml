@@ -65,7 +65,8 @@ jobs:
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
       - name: Build app image
-        run: ./gradlew createDistributable --stacktrace -PappVersion=${{ steps.version.outputs.value }}
+        shell: bash
+        run: ./gradlew createDistributable --stacktrace "-PappVersion=${{ steps.version.outputs.value }}"
 
       - name: Zip app image
         shell: bash
