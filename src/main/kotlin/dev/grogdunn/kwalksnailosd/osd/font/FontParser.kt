@@ -47,15 +47,19 @@ class FontParser {
     fun detectDimensions(width: Int, height: Int): FontDimensions {
         for (type in FontType.entries) {
             for (size in CharacterSize.entries) {
-                if (width == size.width * type.pages && ((height - 1) / size.height) % 256 == 0) {
-                    if (height % size.height != 0) {
-                        throw FontFileException.InvalidFontFileHeight(height)
-                    }
-                    val charactersCount = height / size.height
-                    return FontDimensions(size, type, charactersCount)
+                if (width != size.width * type.pages) continue
+                val tileCount = height / size.height
+                if (tileCount <= 0 || tileCount % TILES_PER_PAGE != 0) continue
+                if (height % size.height != 0) {
+                    throw FontFileException.InvalidFontFileHeight(height)
                 }
+                return FontDimensions(size, type, tileCount)
             }
         }
         throw FontFileException.InvalidFontFileWidth(width)
+    }
+
+    private companion object {
+        const val TILES_PER_PAGE = 256
     }
 }
