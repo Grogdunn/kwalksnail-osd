@@ -19,8 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
+import androidx.compose.material.Checkbox
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
+import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Slider
@@ -44,6 +46,9 @@ import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import dev.grogdunn.kwalksnailosd.osd.osdPlaybackSpeedFactor
+import dev.grogdunn.kwalksnailosd.video.VideoCodec
+import dev.grogdunn.kwalksnailosd.video.outputNameFor
 import java.time.Duration
 import kotlin.math.roundToInt
 
@@ -267,26 +272,144 @@ private fun RightSidebarPanel(
                     color = Color.Gray
                 )
             }
+
+            BurnOptions(stateHolder = stateHolder)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        BurnStatusAndButton(stateHolder = stateHolder)
+    }
+}
+
+@Composable
+private fun BurnOptions(stateHolder: AppStateHolder) {
+    val state = stateHolder.state
+    val controlsEnabled = !state.isBurning && state.videoInfo != null && state.osd != null && state.font != null
+    val speedFactor = if (state.videoInfo != null && state.osd != null) {
+        osdPlaybackSpeedFactor(state.videoInfo.duration, state.osd.duration, state.adjustOsdPlaybackSpeed)
+    } else {
+        1.0
+    }
+
+    Text(
+        text = "Export",
+        style = MaterialTheme.typography.subtitle1,
+        fontWeight = FontWeight.Bold
+    )
+
+    Text("Offset X: ${state.osdOffsetX} px", style = MaterialTheme.typography.caption)
+    Slider(
+        value = state.osdOffsetX.toFloat(),
+        onValueChange = { stateHolder.setOsdOffset(it.roundToInt(), state.osdOffsetY) },
+        valueRange = -200f..700f,
+        enabled = controlsEnabled,
+    )
+    Text("Offset Y: ${state.osdOffsetY} px", style = MaterialTheme.typography.caption)
+    Slider(
+        value = state.osdOffsetY.toFloat(),
+        onValueChange = { stateHolder.setOsdOffset(state.osdOffsetX, it.roundToInt()) },
+        valueRange = -200f..700f,
+        enabled = controlsEnabled,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = stateHolder::centerOsd, enabled = controlsEnabled) {
+            Text("Centra", fontSize = 12.sp)
+        }
+        OutlinedButton(onClick = stateHolder::resetOsdOffset, enabled = controlsEnabled) {
+            Text("Azzera", fontSize = 12.sp)
+        }
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(
+            checked = state.adjustOsdPlaybackSpeed,
+            onCheckedChange = stateHolder::setAdjustOsdPlaybackSpeed,
+            enabled = controlsEnabled,
+        )
+        Text("Correggi velocità OSD", style = MaterialTheme.typography.body2)
+    }
+    Text(
+        text = "Per i firmware Walksnail fino al 32.37.10. Fattore ${"%.3f".format(speedFactor)}× (durata video / durata OSD).",
+        style = MaterialTheme.typography.caption,
+        color = Color.Gray
+    )
+
+    Text("Codec", style = MaterialTheme.typography.caption)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        VideoCodec.entries.forEach { codec ->
             OutlinedButton(
-                onClick = {
-                    TODO()
-                },
+                onClick = { stateHolder.setBurnCodec(codec) },
+                enabled = controlsEnabled,
                 colors = ButtonDefaults.outlinedButtonColors(
-                    backgroundColor = Color.Red,
-                    contentColor = Color.Black
-                ),
-                enabled = state.osd != null && state.selectedMp4 != null && state.selectedFont != null && state.selectedSrt != null
+                    backgroundColor = if (state.burnCodec == codec) MaterialTheme.colors.primary.copy(alpha = 0.2f) else Color.Transparent
+                )
             ) {
-                Text("Burn", fontSize = 12.sp)
+                Text(codec.label, fontSize = 12.sp)
+            }
+        }
+    }
+
+    Text("Bitrate: ${state.burnBitrateMbps} Mbps", style = MaterialTheme.typography.caption)
+    Slider(
+        value = state.burnBitrateMbps.toFloat(),
+        onValueChange = { stateHolder.setBurnBitrateMbps(it.roundToInt()) },
+        valueRange = 1f..80f,
+        enabled = controlsEnabled,
+    )
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Checkbox(
+            checked = state.preferHardwareEncoder,
+            onCheckedChange = stateHolder::setPreferHardwareEncoder,
+            enabled = controlsEnabled,
+        )
+        Text(
+            "Encoder hardware, con fallback software",
+            style = MaterialTheme.typography.body2,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
+    val state = stateHolder.state
+    val canBurn = state.osd != null && state.videoInfo != null && state.font != null && state.selectedMp4 != null
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (state.isBurning || state.burnMessage != null) {
+            LinearProgressIndicator(
+                progress = state.burnProgress.coerceIn(0f, 1f),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        state.burnMessage?.let { message ->
+            Text(text = message, style = MaterialTheme.typography.caption, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        }
+        state.burnError?.let { error ->
+            Text(text = error, style = MaterialTheme.typography.caption, color = MaterialTheme.colors.error, maxLines = 6, overflow = TextOverflow.Ellipsis)
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            if (state.isBurning) {
+                OutlinedButton(onClick = stateHolder::cancelBurn) {
+                    Text("Annulla", fontSize = 12.sp)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = {
+                        val input = state.selectedMp4 ?: return@OutlinedButton
+                        desktopSaveDialog(outputNameFor(input)) { path ->
+                            if (path != null) stateHolder.startBurn(path)
+                        }
+                    },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        backgroundColor = Color.Red,
+                        contentColor = Color.Black
+                    ),
+                    enabled = canBurn
+                ) {
+                    Text("Burn", fontSize = 12.sp)
+                }
             }
         }
     }
@@ -536,6 +659,15 @@ private fun StatusBar(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 when {
+                    state.isBurning -> {
+                        CircularProgressIndicator(modifier = Modifier.height(12.dp).width(12.dp), strokeWidth = 2.dp)
+                        Text(state.burnMessage ?: "Export in corso…", style = MaterialTheme.typography.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+
+                    state.burnError != null -> {
+                        Text("Errore export: ${state.burnError}", style = MaterialTheme.typography.caption, color = MaterialTheme.colors.error, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+
                     state.isParsingOsd -> {
                         CircularProgressIndicator(modifier = Modifier.height(12.dp).width(12.dp), strokeWidth = 2.dp)
                         Text("Analisi OSD in corso...", style = MaterialTheme.typography.caption)
