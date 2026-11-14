@@ -6,6 +6,10 @@ import dev.grogdunn.kwalksnailosd.osd.OsdRenderer
 import dev.grogdunn.kwalksnailosd.osd.font.Font
 import dev.grogdunn.kwalksnailosd.osd.osdFrameAt
 import dev.grogdunn.kwalksnailosd.osd.osdPlaybackSpeedFactor
+import dev.grogdunn.kwalksnailosd.srt.SrtFile
+import dev.grogdunn.kwalksnailosd.srt.SrtOptions
+import dev.grogdunn.kwalksnailosd.srt.SrtOverlay
+import dev.grogdunn.kwalksnailosd.srt.srtCueAt
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CancellationException
 import java.awt.image.BufferedImage
@@ -38,6 +42,8 @@ class VideoBurner(
         settings: BurnSettings,
         onProgress: (BurnProgress) -> Unit = {},
         isCancelled: () -> Boolean = { false },
+        srt: SrtFile? = null,
+        srtOptions: SrtOptions = SrtOptions(),
     ): BurnResult {
         validate(input, output, videoInfo, osd, settings)
         val speedFactor = osdPlaybackSpeedFactor(videoInfo.duration, osd.duration, settings.adjustPlaybackSpeed)
@@ -48,7 +54,7 @@ class VideoBurner(
             encode(
                 input, output, videoInfo, osd, font, settings, choice, speedFactor,
                 usedSoftwareFallback = softwareBecauseHardwareIsMissing,
-                onProgress, isCancelled,
+                onProgress, isCancelled, srt, srtOptions,
             )
         } catch (cancelled: CancellationException) {
             deleteQuietly(output)
@@ -60,7 +66,10 @@ class VideoBurner(
             logger.warn(failure) { "Encoder ${choice.name} non utilizzabile, fallback a ${software.name}" }
             onProgress(BurnProgress(0f, "Encoder ${choice.name} non utilizzabile. Uso ${software.name}."))
             try {
-                encode(input, output, videoInfo, osd, font, settings, software, speedFactor, usedSoftwareFallback = true, onProgress, isCancelled)
+                encode(
+                    input, output, videoInfo, osd, font, settings, software, speedFactor,
+                    usedSoftwareFallback = true, onProgress, isCancelled, srt, srtOptions,
+                )
             } catch (cancelled: CancellationException) {
                 deleteQuietly(output)
                 throw cancelled
@@ -87,6 +96,8 @@ class VideoBurner(
         usedSoftwareFallback: Boolean,
         onProgress: (BurnProgress) -> Unit,
         isCancelled: () -> Boolean,
+        srt: SrtFile?,
+        srtOptions: SrtOptions,
     ): BurnResult {
         throwIfCancelled(isCancelled)
         val width = videoInfo.width
@@ -112,7 +123,7 @@ class VideoBurner(
                         val videoTimeMillis = framesWritten / videoInfo.frameRate * 1000.0
                         val osdFrame = osdFrameAt(osd.frames, videoTimeMillis, speedFactor)
                             ?: throw VideoBurnException("Il file OSD non contiene frame.")
-                        drawOsd(raw, width, height, osdFrame, font, settings.offsetX, settings.offsetY)
+                        drawOsd(raw, width, height, osdFrame, font, settings.offsetX, settings.offsetY, srt, srtOptions, videoTimeMillis)
                         encoded.write(raw)
                         framesWritten += 1
                         if (framesWritten == 1 || framesWritten == expectedFrames || framesWritten % 5 == 0) {
@@ -164,6 +175,9 @@ class VideoBurner(
         font: Font,
         offsetX: Int,
         offsetY: Int,
+        srt: SrtFile?,
+        srtOptions: SrtOptions,
+        videoTimeMillis: Double,
     ) {
         val image = BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR)
         val raster = (image.raster.dataBuffer as DataBufferByte).data
@@ -172,6 +186,8 @@ class VideoBurner(
         }
         System.arraycopy(bgr, 0, raster, 0, bgr.size)
         osdRenderer.renderInPlace(image, frame, font, offsetX, offsetY)
+        val srtData = srt?.let { srtCueAt(it.cues, videoTimeMillis)?.data }
+        if (srtData != null) SrtOverlay.draw(image, srtData, srtOptions)
         System.arraycopy(raster, 0, bgr, 0, bgr.size)
     }
 

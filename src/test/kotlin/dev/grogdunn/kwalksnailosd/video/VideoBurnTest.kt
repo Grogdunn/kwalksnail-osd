@@ -1,6 +1,8 @@
 package dev.grogdunn.kwalksnailosd.video
 
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
+import dev.grogdunn.kwalksnailosd.srt.SrtOptions
+import dev.grogdunn.kwalksnailosd.srt.SrtParser
 import dev.grogdunn.kwalksnailosd.osd.OsdRenderer
 import dev.grogdunn.kwalksnailosd.osd.Position
 import dev.grogdunn.kwalksnailosd.osd.font.CharacterSize
@@ -207,9 +209,83 @@ class VideoBurnTest {
         }
         assertFalse(output.exists())
     }
+
+    @Test
+    fun burnDrawsTheSrtTextInTheConfiguredBand() {
+        val ffmpeg = FfmpegLocator().locateFor(VideoCodec.H264)
+        val directory = createTempDirectory("burn-srt")
+        val input = directory.resolve("clip.mp4")
+        renderTestSrc(
+            ffmpeg,
+            input,
+            width = 320,
+            height = 180,
+            fps = 10,
+            seconds = 1,
+            withAudio = false,
+            lavfi = "color=c=black:size=320x180:rate=10",
+        )
+        val srtPath = directory.resolve("clip.srt")
+        Files.writeString(
+            srtPath,
+            """
+            1
+            00:00:00,000 --> 00:00:01,000
+            Signal:4 CH:8 FlightTime:65 SBat:16.7V GBat:12.5V Delay:25ms Bitrate:25.0Mbps Distance:1m
+
+            """.trimIndent(),
+        )
+        val videoInfo = VideoParser().use { it.getVideoInfo(input) }
+        val output = directory.resolve("clip_with_osd.mp4")
+        VideoBurner(ffmpeg).burn(
+            input,
+            output,
+            videoInfo,
+            OsdParser().parse(writeOsd(directory.resolve("clip.osd"))),
+            magentaFont(),
+            BurnSettings(VideoCodec.H264, bitrateMbps = 8, preferHardware = false, offsetX = 0, offsetY = 0, adjustPlaybackSpeed = false),
+            srt = SrtParser().parse(srtPath),
+            srtOptions = SrtOptions(
+                xPercent = 4f,
+                yPercent = 20f,
+                scale = 200f,
+                showTime = true,
+                showSkyBattery = false,
+                showGroundBattery = false,
+                showSignal = false,
+                showLatency = false,
+                showBitrate = false,
+                showDistance = false,
+            ),
+        )
+        val frame = extractFrame(ffmpeg, output, frameIndex = 3, directory.resolve("srt-frame.png"))
+        val reports = Path.of("build", "reports")
+        Files.createDirectories(reports)
+        ImageIO.write(frame, "png", reports.resolve("srt-burn-frame.png").toFile())
+
+        var inBand = 0
+        var below = 0
+        for (y in 0 until frame.height) {
+            for (x in 0 until frame.width) {
+                if (!isLight(frame.getRGB(x, y))) continue
+                if (y in 28..95 && x in 8..220) inBand += 1 else if (y > 120) below += 1
+            }
+        }
+        assertTrue(inBand > 20, "pixel chiari nella fascia del testo: $inBand")
+        assertEquals(0, below, "il testo non deve finire nella metà bassa")
+    }
 }
 
-private fun renderTestSrc(ffmpeg: Path, output: Path, width: Int, height: Int, fps: Int, seconds: Int, withAudio: Boolean) {
+private fun renderTestSrc(
+    ffmpeg: Path,
+    output: Path,
+    width: Int,
+    height: Int,
+    fps: Int,
+    seconds: Int,
+    withAudio: Boolean,
+    lavfi: String = "testsrc=size=${width}x${height}:rate=$fps",
+) {
     val command = mutableListOf(
         ffmpeg.toString(),
         "-y",
@@ -220,7 +296,7 @@ private fun renderTestSrc(ffmpeg: Path, output: Path, width: Int, height: Int, f
         "-f",
         "lavfi",
         "-i",
-        "testsrc=size=${width}x${height}:rate=$fps",
+        lavfi,
     )
     if (withAudio) {
         command += listOf("-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100")
@@ -322,6 +398,13 @@ private fun assertNotMagenta(image: BufferedImage, origin: Position, tile: Chara
     val centerY = origin.y + tile.height / 2
     val center = image.getRGB(centerX, centerY)
     assertFalse(isMagenta(center), "il glifo non dovrebbe essere qui ($centerX,$centerY) = ${hex(center)}")
+}
+
+private fun isLight(rgb: Int): Boolean {
+    val red = (rgb shr 16) and 0xFF
+    val green = (rgb shr 8) and 0xFF
+    val blue = rgb and 0xFF
+    return red > 160 && green > 160 && blue > 160
 }
 
 private fun isMagenta(rgb: Int): Boolean {
