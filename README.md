@@ -39,7 +39,7 @@ The project needs JDK 25. `./gradlew run` starts the app, and `./gradlew createD
 
 ## Support
 
-If this project is useful, you can support the work on [Ko-fi](https://ko-fi.com/grogdunn) or [GitHub Sponsors](https://github.com/sponsors/Grogdunn). GitHub Sponsors may stay unavailable until GitHub approves the sponsorship profile.
+If this project is useful, you can support the work on [Ko-fi](https://ko-fi.com/grogdunn) or [GitHub Sponsors](https://github.com/sponsors/Grogdunn).
 
 ## pstack
 
