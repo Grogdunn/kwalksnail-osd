@@ -18,8 +18,12 @@ class FfmpegLocator(
     private val onPath: () -> Path? = { findOnPath() },
 ) {
     fun locateFor(codec: VideoCodec): Path {
+        FfmpegEncoders.clearFailure()
         val candidates = runnableCandidates()
-        if (candidates.isEmpty()) throw FfmpegNotFoundException(FFMPEG_NOT_FOUND_MESSAGE)
+        if (candidates.isEmpty()) {
+            val detail = FfmpegEncoders.lastFailure?.let { " Dettaglio: $it" }.orEmpty()
+            throw FfmpegNotFoundException(FFMPEG_NOT_FOUND_MESSAGE + detail)
+        }
         for (encoder in softwareEncoderNames(codec)) {
             for (candidate in candidates) {
                 if (FfmpegEncoders.supports(candidate, encoder)) return candidate
@@ -37,21 +41,28 @@ class FfmpegLocator(
         if (!Files.isRegularFile(path)) return false
         val process = try {
             ProcessBuilder(path.toString(), "-nostdin", "-hide_banner", "-version")
+                .forBundledFfmpeg(path)
                 .redirectErrorStream(true)
-                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                 .start()
-        } catch (_: Exception) {
+        } catch (failure: Exception) {
+            FfmpegEncoders.recordFailure("avvio di $path: ${failure.message}")
             return false
         }
+        val output = process.inputStream.bufferedReader().use { it.readText() }
         return try {
             if (!process.waitFor(5, TimeUnit.SECONDS)) {
                 process.destroyForcibly()
+                FfmpegEncoders.recordFailure("timeout su $path -version")
                 false
+            } else if (process.exitValue() == 0) {
+                true
             } else {
-                process.exitValue() == 0
+                FfmpegEncoders.recordFailure("exit ${process.exitValue()} su $path: ${output.take(500)}")
+                false
             }
-        } catch (_: Exception) {
+        } catch (failure: Exception) {
             process.destroyForcibly()
+            FfmpegEncoders.recordFailure("avvio di $path: ${failure.message}")
             false
         }
     }
@@ -93,6 +104,17 @@ class FfmpegLocator(
 }
 
 object FfmpegEncoders {
+    var lastFailure: String? = null
+        private set
+
+    fun clearFailure() {
+        lastFailure = null
+    }
+
+    fun recordFailure(message: String) {
+        lastFailure = message
+    }
+
     private val cache = mutableMapOf<Pair<String, String>, Boolean>()
 
     fun softwareNames(codec: VideoCodec): List<String> = when (codec) {
@@ -110,16 +132,28 @@ object FfmpegEncoders {
         }
         val found = try {
             val process = ProcessBuilder(ffmpeg.toString(), "-nostdin", "-hide_banner", "-encoders")
-                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .forBundledFfmpeg(ffmpeg)
+                .redirectErrorStream(true)
                 .start()
             val text = process.inputStream.bufferedReader().use { it.readText() }
-            if (!process.waitFor(5, TimeUnit.SECONDS)) {
-                process.destroyForcibly()
-                false
-            } else {
+            val finished = process.waitFor(5, TimeUnit.SECONDS)
+            if (!finished) process.destroyForcibly()
+            val listed = finished && process.exitValue() == 0 &&
                 text.lineSequence().any { line -> line.trim().split(Regex("\\s+")).getOrNull(1) == encoder }
+            if (!listed) {
+                recordFailure(
+                    if (!finished || process.exitValue() != 0) {
+                        "exit=${if (finished) process.exitValue() else "timeout"} ${text.take(800)}"
+                    } else {
+                        text.lineSequence().filter { line -> line.contains("264") || line.contains("265") }.take(6)
+                            .joinToString(" | ")
+                            .ifBlank { "encoder $encoder assente" }
+                    },
+                )
             }
-        } catch (_: Exception) {
+            listed
+        } catch (failure: Exception) {
+            lastFailure = failure.message
             false
         }
         synchronized(cache) { cache[key] = found }
@@ -145,3 +179,19 @@ const val FFMPEG_NOT_FOUND_MESSAGE =
     "ffmpeg non è disponibile. L'export cerca prima il binario incluso nelle librerie native JavaCV " +
         "(lo stesso dei pacchetti dell'app) e poi il comando ffmpeg nel PATH. " +
         "Installa ffmpeg, oppure avvia l'app dal pacchetto che include quelle librerie."
+
+/**
+ * Il binario JavaCV ha RUNPATH `$ORIGIN`. `LD_LIBRARY_PATH` del processo (per esempio
+ * quello di un runner) viene cercato prima e può caricare un'altra libav*.
+ * Sul Linux lo sostituiamo con la directory del binario, così le librerie estratte vincono
+ * e le librerie di sistema (PulseAudio, ALSA) restano nel percorso predefinito.
+ */
+fun ProcessBuilder.forBundledFfmpeg(binary: Path): ProcessBuilder = apply {
+    val os = System.getProperty("os.name").orEmpty().lowercase()
+    if (!os.contains("linux") && !os.contains("nux")) return@apply
+    val origin = binary.parent?.toAbsolutePath()?.toString() ?: return@apply
+    environment().apply {
+        remove("LD_PRELOAD")
+        this["LD_LIBRARY_PATH"] = origin
+    }
+}
