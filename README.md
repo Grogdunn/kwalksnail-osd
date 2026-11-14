@@ -37,6 +37,10 @@ The executable is not signed.
 
 The project needs JDK 25. `./gradlew run` starts the app, and `./gradlew createDistributable` builds an app image for the machine you are on.
 
+## Support
+
+If this project is useful, you can support the work on [Ko-fi](https://ko-fi.com/grogdunn) or [GitHub Sponsors](https://github.com/sponsors/Grogdunn). GitHub Sponsors may stay unavailable until GitHub approves the sponsorship profile.
+
 ## pstack
 
 pstack è incluso senza modifiche in `.cursor/skills/pstack/` (versione upstream 0.15.36, commit `bb68f2365eceafa0cb2d253112f675acf5f144cc`). I modelli sono fissati su Grok in `.cursor/rules/pstack-models.mdc`. Per aggiornare, sostituire la cartella con una copia intatta dell'upstream.
