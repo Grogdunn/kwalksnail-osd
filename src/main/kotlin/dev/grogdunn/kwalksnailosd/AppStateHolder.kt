@@ -8,8 +8,12 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
 import dev.grogdunn.kwalksnailosd.osd.OsdRenderer
+import dev.grogdunn.kwalksnailosd.osd.TelemetryOverlay
+import dev.grogdunn.kwalksnailosd.osd.TelemetryOverlayOptions
 import dev.grogdunn.kwalksnailosd.osd.font.Font
 import dev.grogdunn.kwalksnailosd.osd.font.FontParser
+import dev.grogdunn.kwalksnailosd.srt.TelemetryTrack
+import dev.grogdunn.kwalksnailosd.srt.WalksnailSrt
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import dev.grogdunn.kwalksnailosd.video.VideoParser
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -32,7 +36,12 @@ data class AppUiState(
     val font: Font? = null,
     val videoInfo: VideoInfo? = null,
     val selectedFrame: Float = 0.0f,
-    val bitmap: ImageBitmap? = null
+    val bitmap: ImageBitmap? = null,
+
+    val telemetry: TelemetryTrack? = null,
+    val isParsingSrt: Boolean = false,
+    val srtError: String? = null,
+    val telemetryOptions: TelemetryOverlayOptions = TelemetryOverlayOptions(),
 )
 
 class AppStateHolder(
@@ -53,16 +62,25 @@ class AppStateHolder(
         val osdChanged = selectedOsd != state.selectedOsd
         val selectedMp4 = if (path.extension.equals("mp4", ignoreCase = true)) path else state.selectedMp4 ?: relatedFiles.mp4Path
         val mp4Changed = selectedMp4 != state.selectedMp4
+        val selectedSrt = when {
+            path.extension.equals("srt", ignoreCase = true) -> path
+            path.extension.equals("mp4", ignoreCase = true) -> relatedFiles.srtPath ?: state.selectedSrt
+            else -> state.selectedSrt ?: relatedFiles.srtPath
+        }
+        val srtChanged = selectedSrt != state.selectedSrt
         state = state.copy(
             selectedMp4 = selectedMp4,
             selectedOsd = selectedOsd,
-            selectedSrt = state.selectedSrt ?: relatedFiles.srtPath,
+            selectedSrt = selectedSrt,
             osd = if (osdChanged) null else state.osd,
             isParsingOsd = !osdChanged && state.isParsingOsd,
             osdError = if (osdChanged) null else state.osdError,
             videoInfo = if (mp4Changed) null else state.videoInfo,
             bitmap = if (mp4Changed) null else state.bitmap,
-            selectedFrame = if (mp4Changed) 0.0f else state.selectedFrame
+            selectedFrame = if (mp4Changed) 0.0f else state.selectedFrame,
+            telemetry = if (srtChanged) null else state.telemetry,
+            isParsingSrt = if (srtChanged) false else state.isParsingSrt,
+            srtError = if (srtChanged) null else state.srtError,
         )
     }
 
@@ -88,6 +106,38 @@ class AppStateHolder(
             }
         }
         state = state.copy(videoInfo = videoInfo)
+    }
+
+    suspend fun parseSelectedSrt() {
+        val path = state.selectedSrt
+        if (path == null) {
+            state = state.copy(telemetry = null, isParsingSrt = false, srtError = null)
+            return
+        }
+
+        state = state.copy(isParsingSrt = true, srtError = null)
+        try {
+            val track = withContext(Dispatchers.IO) { WalksnailSrt.parse(path) }
+            if (state.selectedSrt != path) return
+            val error = if (track.cues.isEmpty()) "Nessun dato telemetrico riconosciuto" else null
+            state = state.copy(telemetry = track, srtError = error)
+            logger.info { "Parsed SRT $path: ${track.cues.size} cues, ${track.skippedCues} skipped" }
+            refreshPreview()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            if (state.selectedSrt != path) return
+            state = state.copy(telemetry = null, srtError = exception.message ?: "Impossibile leggere il file SRT")
+        } finally {
+            if (state.selectedSrt == path) {
+                state = state.copy(isParsingSrt = false)
+            }
+        }
+    }
+
+    fun updateTelemetryOptions(options: TelemetryOverlayOptions) {
+        state = state.copy(telemetryOptions = options)
+        refreshPreview()
     }
 
     suspend fun parseSelectedOsd() {
@@ -118,10 +168,17 @@ class AppStateHolder(
         frame ?: return
 
         OsdRenderer().renderInPlace(selectedFrameImage, frame, font)
+        val sample = state.telemetry?.sampleAt(frameTimestamp.toLong())
+        TelemetryOverlay().draw(selectedFrameImage, sample, state.telemetryOptions)
         state = state.copy(
             selectedFrame = selectedFrame,
             bitmap = selectedFrameImage.toComposeImageBitmap()
         )
+    }
+
+    private fun refreshPreview() {
+        if (state.bitmap == null || state.videoInfo == null || state.osd == null || state.font == null) return
+        onFrameSelected(state.selectedFrame)
     }
 
     override fun close() {

@@ -107,6 +107,10 @@ fun App(stateHolder: AppStateHolder = remember { AppStateHolder() }) {
         state.selectedFont?.let { stateHolder.parseSelectedFont() }
     }
 
+    LaunchedEffect(state.selectedSrt) {
+        stateHolder.parseSelectedSrt()
+    }
+
     MaterialTheme {
         Column(modifier = Modifier.fillMaxSize()) {
             // Area Principale (Sidebar + Preview e Slider)
@@ -184,10 +188,14 @@ private fun LeftSidebarPanel(
         FileSelectorCard(
             title = "Sottotitoli (.srt)",
             fileName = state.selectedSrt?.fileName?.toString(),
+            isLoading = state.isParsingSrt,
+            errorMessage = state.srtError,
             onSelectClick = {
                 desktopFileDialog(allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
             }
         )
+
+        TelemetryOptionsPanel(stateHolder = stateHolder)
 
         FileSelectorCard(
             title = "Font OSD (.png)",
