@@ -13,21 +13,31 @@ This project is independent of Walksnail and Caddx.
 - Draws the OSD on the video frame you select.
 - Shows the video resolution, frame rate, frame count, duration, and codec.
 - Shows the flight-controller tag, the number of OSD frames, and the OSD duration.
+- Writes a new MP4 with the OSD drawn into the frames, and keeps the audio.
 
-The downloadable builds include a Java runtime and the FFmpeg libraries used to read the video. You do not install Java or FFmpeg yourself.
+The downloadable builds include a Java runtime and the FFmpeg libraries used to read the video and to write H.264. You do not install Java. H.265 export needs an `ffmpeg` on your PATH that includes `libx265`. The bundled libraries do not include that encoder.
 
 Bring your own PNG OSD font. Use the font atlas from the aircraft, the same kind of PNG that Betaflight, INAV, and similar tools export. This app does not ship one.
 
 The labels in the window are Italian.
 
+## Burn
+
+**Burn** reads the MP4, draws the OSD on each frame at the `.osd` timestamp, and writes `{name}_with_osd.mp4`. Audio is copied when the source has any.
+
+Choose H.264 or H.265 and a bitrate from 1 to 80 Mbps. If a hardware encoder answers a short probe, the app uses it. If the probe or the encode fails, the app retries with a software encoder and names the encoder that wrote the file. A progress bar and **Annulla** stay on screen, and the window does not freeze.
+
+Offset X and Y move the OSD in pixels. **Centra** frames the glyphs of the current preview frame. With playback correction on, for Walksnail firmware up to 32.37.10, OSD timestamps are scaled by `video duration / OSD duration`.
+
+The encoder is the `ffmpeg` binary from the JavaCV native libraries, the same binary the app images ship. If that binary does not start, the app uses `ffmpeg` on `PATH`. If neither runs, Burn says how to fix it.
+
+For H.264 the app prefers `libx264` when the chosen binary has it, and otherwise uses `libopenh264` from the JavaCV build. OpenH264 follows the requested bitrate less closely. H.265 needs `libx265`.
+
 ## Coming soon
 
-Video burn export and the SRT overlay are in progress.
+The SRT overlay is in progress. It will draw data from the Walksnail `.srt` file on the preview and on the burned video.
 
-- **Burn** will write a new video with the OSD drawn into the frames.
-- **SRT overlay** will draw data from the Walksnail `.srt` file on the video.
-
-The window already shows a **Burn** button and a field for the `.srt` file. In the current build those controls are unfinished: **Burn** does not write a file, and the `.srt` is not drawn.
+The window already shows a field for the `.srt` file. In the current build that file is not drawn.
 
 ## Screenshots
 
@@ -103,6 +113,8 @@ Walksnail OSD is free software under the GNU General Public License version 3 on
 Walksnail OSD Tool identifies the same license as `GPL-3.0` and does not grant a later version, so this project does not grant one either.
 
 You may run, study, share, and modify this program. If you distribute a modified version, license that version under GPL-3.0 and keep the notices in [NOTICE](NOTICE).
+
+The packaged FFmpeg libraries are a separate work. Builds include `org.bytedeco:ffmpeg:8.1.2-1.5.14` without the `gpl` classifier. That is Bytedeco's LGPL build of FFmpeg: it contains OpenH264 (`libopenh264`) and it does not contain `libx264` or `libx265`. Those libraries keep their own licenses. The GPL-3.0-only grant of this program does not replace them. Details are in [NOTICE](NOTICE).
 
 ## Credits
 

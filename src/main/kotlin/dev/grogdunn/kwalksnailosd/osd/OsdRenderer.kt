@@ -10,7 +10,7 @@ class OsdRenderer {
         CharacterSize.entries.firstOrNull { it.height * GRID_ROWS == frameHeight }
             ?: CharacterSize.LARGE
 
-    fun renderInPlace(image: BufferedImage, frame: Frame, font: Font) {
+    fun renderInPlace(image: BufferedImage, frame: Frame, font: Font, offsetX: Int = 0, offsetY: Int = 0) {
         val characterSize = characterSizeForFrameHeight(image.height)
         val graphics = image.createGraphics()
         try {
@@ -18,8 +18,8 @@ class OsdRenderer {
                 val character = font.getCharacter(glyph.index, characterSize) ?: return@forEach
                 graphics.drawImage(
                     character,
-                    glyph.position.x * character.width,
-                    glyph.position.y * character.height,
+                    glyph.position.x * character.width + offsetX,
+                    glyph.position.y * character.height + offsetY,
                     null,
                 )
             }

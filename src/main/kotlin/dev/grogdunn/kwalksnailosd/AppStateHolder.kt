@@ -10,13 +10,28 @@ import dev.grogdunn.kwalksnailosd.osd.OsdParser
 import dev.grogdunn.kwalksnailosd.osd.OsdRenderer
 import dev.grogdunn.kwalksnailosd.osd.font.Font
 import dev.grogdunn.kwalksnailosd.osd.font.FontParser
+import dev.grogdunn.kwalksnailosd.osd.osdFrameAt
+import dev.grogdunn.kwalksnailosd.osd.osdHorizontalOffset
+import dev.grogdunn.kwalksnailosd.osd.osdPlaybackSpeedFactor
+import dev.grogdunn.kwalksnailosd.osd.osdVerticalOffset
+import dev.grogdunn.kwalksnailosd.video.BurnSettings
+import dev.grogdunn.kwalksnailosd.video.FfmpegLocator
+import dev.grogdunn.kwalksnailosd.video.VideoBurner
+import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import dev.grogdunn.kwalksnailosd.video.VideoParser
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
+import javax.swing.SwingUtilities
 import kotlin.io.path.extension
 
 data class AppUiState(
@@ -32,7 +47,17 @@ data class AppUiState(
     val font: Font? = null,
     val videoInfo: VideoInfo? = null,
     val selectedFrame: Float = 0.0f,
-    val bitmap: ImageBitmap? = null
+    val bitmap: ImageBitmap? = null,
+    val osdOffsetX: Int = 0,
+    val osdOffsetY: Int = 0,
+    val adjustOsdPlaybackSpeed: Boolean = true,
+    val burnCodec: VideoCodec = VideoCodec.H264,
+    val burnBitrateMbps: Int = 40,
+    val preferHardwareEncoder: Boolean = true,
+    val isBurning: Boolean = false,
+    val burnProgress: Float = 0f,
+    val burnMessage: String? = null,
+    val burnError: String? = null,
 )
 
 class AppStateHolder(
@@ -41,6 +66,11 @@ class AppStateHolder(
     private val videoParser: VideoParser = VideoParser()
 ) : AutoCloseable {
     private val logger = KotlinLogging.logger {}
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val osdRenderer = OsdRenderer()
+    private var burnJob: Job? = null
+    private var burnGeneration = 0
+    private val videoBurners = mutableMapOf<VideoCodec, VideoBurner>()
 
     var state by mutableStateOf(AppUiState())
         private set
@@ -111,20 +141,150 @@ class AppStateHolder(
         val videoInfo = state.videoInfo ?: return
         val osd = state.osd ?: return
         val font = state.font ?: return
+        val osdFrame = currentOsdFrame(videoInfo, osd, selectedFrame) ?: return
         logger.info { "onFrameSelected: $selectedFrame" }
         val selectedFrameImage = videoParser.getVideoFrame(mp4, selectedFrame.toInt()) ?: return
-        val frameTimestamp = selectedFrame / videoInfo.frameRate * 1000
-        val frame = osd.frames.findLast { it.timestampMillis <= frameTimestamp.toLong() }
-        frame ?: return
-
-        OsdRenderer().renderInPlace(selectedFrameImage, frame, font)
+        osdRenderer.renderInPlace(selectedFrameImage, osdFrame, font, state.osdOffsetX, state.osdOffsetY)
         state = state.copy(
             selectedFrame = selectedFrame,
             bitmap = selectedFrameImage.toComposeImageBitmap()
         )
     }
 
+    fun setOsdOffset(x: Int, y: Int) {
+        if (x == state.osdOffsetX && y == state.osdOffsetY) return
+        state = state.copy(osdOffsetX = x, osdOffsetY = y)
+        rerenderCurrentFrame()
+    }
+
+    fun centerOsd() {
+        val video = state.videoInfo ?: return
+        val osd = state.osd ?: return
+        val frame = currentOsdFrame(video, osd) ?: return
+        val tile = osdRenderer.characterSizeForFrameHeight(video.height)
+        setOsdOffset(
+            osdHorizontalOffset(video.width, frame, tile.width),
+            osdVerticalOffset(video.height, frame, tile.height),
+        )
+    }
+
+    fun resetOsdOffset() {
+        setOsdOffset(0, 0)
+    }
+
+    fun setAdjustOsdPlaybackSpeed(enabled: Boolean) {
+        state = state.copy(adjustOsdPlaybackSpeed = enabled)
+        rerenderCurrentFrame()
+    }
+
+    fun setBurnCodec(codec: VideoCodec) {
+        state = state.copy(burnCodec = codec)
+    }
+
+    fun setBurnBitrateMbps(bitrate: Int) {
+        state = state.copy(burnBitrateMbps = bitrate.coerceIn(1, 80))
+    }
+
+    fun setPreferHardwareEncoder(enabled: Boolean) {
+        state = state.copy(preferHardwareEncoder = enabled)
+    }
+
+    fun startBurn(output: Path) {
+        if (state.isBurning) return
+        val mp4 = state.selectedMp4 ?: return
+        val videoInfo = state.videoInfo ?: return
+        val osd = state.osd ?: return
+        val font = state.font ?: return
+        val settings = BurnSettings(
+            codec = state.burnCodec,
+            bitrateMbps = state.burnBitrateMbps,
+            preferHardware = state.preferHardwareEncoder,
+            offsetX = state.osdOffsetX,
+            offsetY = state.osdOffsetY,
+            adjustPlaybackSpeed = state.adjustOsdPlaybackSpeed,
+        )
+        val generation = ++burnGeneration
+        state = state.copy(isBurning = true, burnProgress = 0f, burnMessage = "Avvio dell'export…", burnError = null)
+        burnJob = scope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    val burnScope = this
+                    videoBurner(settings.codec).burn(
+                        input = mp4,
+                        output = output,
+                        videoInfo = videoInfo,
+                        osd = osd,
+                        font = font,
+                        settings = settings,
+                        onProgress = { progress -> publishBurn(generation, progress.fraction, progress.message) },
+                        isCancelled = { !burnScope.isActive },
+                    )
+                }
+                SwingUtilities.invokeLater {
+                    if (generation != burnGeneration) return@invokeLater
+                    val fallback = if (result.usedSoftwareFallback) " (fallback software)" else ""
+                    state = state.copy(
+                        isBurning = false,
+                        burnProgress = 1f,
+                        burnMessage = "Salvato ${result.output.fileName} con ${result.encoderName}$fallback",
+                        burnError = null,
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                SwingUtilities.invokeLater {
+                    if (generation != burnGeneration) return@invokeLater
+                    state = state.copy(isBurning = false, burnMessage = "Export annullato", burnError = null)
+                }
+            } catch (failure: Exception) {
+                logger.error(failure) { "Burn failed" }
+                SwingUtilities.invokeLater {
+                    if (generation != burnGeneration) return@invokeLater
+                    state = state.copy(
+                        isBurning = false,
+                        burnError = failure.message ?: "Export non riuscito",
+                        burnMessage = null,
+                    )
+                }
+            }
+        }
+    }
+
+    fun cancelBurn() {
+        burnGeneration += 1
+        burnJob?.cancel()
+        state = state.copy(isBurning = false, burnMessage = "Export annullato", burnError = null)
+    }
+
+    private fun videoBurner(codec: VideoCodec): VideoBurner =
+        videoBurners.getOrPut(codec) { VideoBurner(FfmpegLocator().locateFor(codec)) }
+
+    private fun publishBurn(generation: Int, fraction: Float, message: String) {
+        SwingUtilities.invokeLater {
+            if (generation != burnGeneration || !state.isBurning) return@invokeLater
+            state = state.copy(burnProgress = fraction, burnMessage = message)
+        }
+    }
+
+    private fun currentOsdFrame(videoInfo: VideoInfo, osd: Osd, selectedFrame: Float = state.selectedFrame) =
+        if (videoInfo.frameRate <= 0.0) {
+            null
+        } else {
+            osdFrameAt(
+                osd.frames,
+                selectedFrame / videoInfo.frameRate * 1000.0,
+                osdPlaybackSpeedFactor(videoInfo.duration, osd.duration, state.adjustOsdPlaybackSpeed),
+            )
+        }
+
+    private fun rerenderCurrentFrame() {
+        if (state.selectedMp4 == null || state.videoInfo == null || state.osd == null || state.font == null) return
+        onFrameSelected(state.selectedFrame)
+    }
+
     override fun close() {
+        burnGeneration += 1
+        burnJob?.cancel()
+        scope.cancel()
         videoParser.close()
     }
 }

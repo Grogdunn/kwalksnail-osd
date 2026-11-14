@@ -16,14 +16,7 @@ class VideoParser : AutoCloseable {
     fun open(mp4: Path): VideoInfo {
         if (currentPath == mp4 && grabber != null) {
             val g = grabber!!
-            return VideoInfo(
-                height = g.imageHeight,
-                width = g.imageWidth,
-                codec = g.videoCodecName ?: "unknown",
-                duration = Duration.ofMillis(g.lengthInTime / 1000),
-                frameRate = g.frameRate,
-                frameNumber = g.lengthInFrames
-            )
+            return videoInfo(g)
         }
 
         closeGrabber()
@@ -33,15 +26,18 @@ class VideoParser : AutoCloseable {
         grabber = newGrabber
         currentPath = mp4
 
-        return VideoInfo(
-            height = newGrabber.imageHeight,
-            width = newGrabber.imageWidth,
-            codec = newGrabber.videoCodecName ?: "unknown",
-            duration = Duration.ofMillis(newGrabber.lengthInTime / 1000),
-            frameRate = newGrabber.frameRate,
-            frameNumber = newGrabber.lengthInFrames
-        )
+        return videoInfo(newGrabber)
     }
+
+    private fun videoInfo(grabber: FrameGrabber): VideoInfo = VideoInfo(
+        height = grabber.imageHeight,
+        width = grabber.imageWidth,
+        codec = grabber.videoCodecName ?: "unknown",
+        duration = Duration.ofMillis(grabber.lengthInTime / 1000),
+        frameRate = grabber.frameRate,
+        frameNumber = grabber.lengthInFrames,
+        hasAudio = grabber.audioChannels > 0,
+    )
 
     @Synchronized
     fun getVideoInfo(mp4: Path): VideoInfo {

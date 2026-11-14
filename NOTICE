@@ -95,8 +95,23 @@ license. .cursor/LICENSE is the same MIT text.
 
 Packaged builds download org.bytedeco:ffmpeg version 8.1.2-1.5.14
 (the artifact without a gpl classifier) and include those native
-libraries so the app can read video. This repository does not vendor
-those binaries or the FFmpeg source. The libraries keep the license
-Bytedeco publishes for that artifact:
+libraries so the app can read video and write an H.264 export.
+This repository does not vendor those binaries or the FFmpeg source.
+The libraries keep the license Bytedeco publishes for that artifact:
 
 https://github.com/bytedeco/javacpp-presets/blob/master/ffmpeg/LICENSE.md
+
+That artifact is the LGPL build of FFmpeg. Bytedeco configures it
+without --enable-gpl, so the GPL-only encoders libx264 and libx265
+are not in the package. The H.264 software encoder in the package
+is OpenH264 (libopenh264). OpenH264 is under the 2-clause BSD
+license, together with Cisco's patent grant for the official binary:
+
+https://github.com/cisco/openh264/blob/master/LICENSE
+
+This program is GPL-3.0 only. That grant does not replace the LGPL
+of the packaged FFmpeg build or the BSD license of OpenH264.
+If ffmpeg on the user's PATH provides libx264 or libx265, Burn uses
+that binary for the matching codec. This repository does not ship
+that binary. libx264 and libx265 are under GPL version 2, and FFmpeg
+includes them only in a GPL build.

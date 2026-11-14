@@ -48,6 +48,18 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+}
+
+fun bytedecoPlatform(): String {
+    val os = System.getProperty("os.name").lowercase()
+    val arch = System.getProperty("os.arch").lowercase()
+    val arm = arch == "aarch64" || arch == "arm64"
+    return when {
+        os.contains("win") -> "windows-x86_64"
+        os.contains("mac") -> if (arm) "macosx-arm64" else "macosx-x86_64"
+        else -> if (arm) "linux-arm64" else "linux-x86_64"
+    }
 }
 
 val packagedJdk = javaToolchains.launcherFor {
@@ -77,16 +89,5 @@ compose.desktop {
                 bundleID = "dev.grogdunn.kwalksnailosd"
             }
         }
-    }
-}
-
-fun bytedecoPlatform(): String {
-    val os = System.getProperty("os.name").lowercase()
-    val arch = System.getProperty("os.arch").lowercase()
-    val arm = arch == "aarch64" || arch == "arm64"
-    return when {
-        os.contains("win") -> "windows-x86_64"
-        os.contains("mac") -> if (arm) "macosx-arm64" else "macosx-x86_64"
-        else -> if (arm) "linux-arm64" else "linux-x86_64"
     }
 }
