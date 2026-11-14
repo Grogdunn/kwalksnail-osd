@@ -146,8 +146,13 @@ class VideoBurnTest {
 
     @Test
     fun h265BurnProducesAnHevcFileOfTheSameDuration() {
+        val hevc = try {
+            FfmpegLocator().locateFor(VideoCodec.H265)
+        } catch (missing: FfmpegNotFoundException) {
+            org.junit.jupiter.api.Assumptions.assumeTrue(false, missing.message)
+            throw missing
+        }
         val ffmpeg = FfmpegLocator().locateFor(VideoCodec.H264)
-        val hevc = FfmpegLocator().locateFor(VideoCodec.H265)
         val directory = createTempDirectory("burn-h265")
         val input = directory.resolve("clip.mp4")
         renderTestSrc(ffmpeg, input, width = 320, height = 180, fps = 10, seconds = 1, withAudio = false)
