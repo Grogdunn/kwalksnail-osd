@@ -15,20 +15,21 @@ This project is independent of Walksnail and Caddx.
 - Shows the flight-controller tag, the number of OSD frames, and the OSD duration.
 - Writes a new MP4 with the OSD drawn into the frames, and keeps the audio.
 - Draws the Walksnail `.srt` fields you choose on the preview and on the burned video.
+- Follows the system language. The interface is available in English, Italian, Spanish, German, and French.
 
 The downloadable builds include a Java runtime and the FFmpeg libraries used to read the video and to write H.264. You do not install Java. H.265 export needs an `ffmpeg` on your PATH that includes `libx265`. The bundled libraries do not include that encoder.
 
 Bring your own PNG OSD font. Use the font atlas from the aircraft, the same kind of PNG that Betaflight, INAV, and similar tools export. This app does not ship one.
 
-The labels in the window are Italian.
+English is the fallback when the system language is not one of those five.
 
 ## Burn
 
 **Burn** reads the MP4, draws the OSD on each frame at the `.osd` timestamp, and writes `{name}_with_osd.mp4`. Audio is copied when the source has any.
 
-Choose H.264 or H.265 and a bitrate from 1 to 80 Mbps. If a hardware encoder answers a short probe, the app uses it. If the probe or the encode fails, the app retries with a software encoder and names the encoder that wrote the file. A progress bar and **Annulla** stay on screen, and the window does not freeze.
+Choose H.264 or H.265 and a bitrate from 1 to 80 Mbps. If a hardware encoder answers a short probe, the app uses it. If the probe or the encode fails, the app retries with a software encoder and names the encoder that wrote the file. A progress bar and **Cancel** stay on screen, and the window does not freeze. The button label follows the system language.
 
-Offset X and Y move the OSD in pixels. **Centra** frames the glyphs of the current preview frame. With playback correction on, for Walksnail firmware up to 32.37.10, OSD timestamps are scaled by `video duration / OSD duration`.
+Offset X and Y move the OSD in pixels. **Center** frames the glyphs of the current preview frame. With playback correction on, for Walksnail firmware up to 32.37.10, OSD timestamps are scaled by `video duration / OSD duration`.
 
 The encoder is the `ffmpeg` binary from the JavaCV native libraries, the same binary the app images ship. If that binary does not start, the app uses `ffmpeg` on `PATH`. If neither runs, Burn says how to fix it.
 
@@ -81,7 +82,7 @@ The executable is not signed.
 4. Open the PNG OSD font.
 5. Move the frame slider. The OSD for that moment is drawn on the frame.
 
-You can also open each file from the **File** menu or from the file list. The menu entries are **Apri Video MP4...**, **Apri File OSD...**, **Apri Sottotitoli SRT...**, and **Apri Font OSD...**.
+You can also open each file from the **File** menu or from the file list. In English the menu entries are **Open MP4 video...**, **Open OSD file...**, **Open SRT subtitles...**, and **Open OSD font...**. Those labels follow the system language.
 
 ## Build from source
 

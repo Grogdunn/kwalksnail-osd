@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="window_title">Walksnail OSD</string>
+    <string name="menu_file">Datei</string>
+    <string name="menu_file_mnemonic">D</string>
+    <string name="menu_open_video">MP4-Video öffnen...</string>
+    <string name="menu_open_osd">OSD-Datei öffnen...</string>
+    <string name="menu_open_srt">SRT-Untertitel öffnen...</string>
+    <string name="menu_open_font">OSD-Schrift öffnen...</string>
+    <string name="menu_exit">Beenden</string>
+
+    <string name="dialog_open_video">MP4-Video auswählen</string>
+    <string name="dialog_open_osd">OSD-Datei auswählen</string>
+    <string name="dialog_open_srt">SRT-Untertitel auswählen</string>
+    <string name="dialog_open_font">OSD-Schrift auswählen</string>
+    <string name="dialog_save_video">Video mit OSD speichern</string>
+
+    <string name="sidebar_source_files">Quelldateien</string>
+    <string name="file_video_mp4">MP4-Video</string>
+    <string name="file_osd_data">OSD-Daten (.osd)</string>
+    <string name="file_srt">Untertitel (.srt)</string>
+    <string name="file_font">OSD-Schrift (.png)</string>
+    <string name="file_none_selected">Keine Datei ausgewählt</string>
+    <string name="file_error">Fehler: %1$s</string>
+    <string name="file_select">Auswählen...</string>
+
+    <string name="details_title">Video- und OSD-Details</string>
+    <string name="details_video">Video:</string>
+    <string name="details_resolution">Auflösung: %1$dx%2$d</string>
+    <string name="details_frame_rate">Bildrate: %1$s fps</string>
+    <string name="details_total_frames">Frames gesamt: %1$d</string>
+    <string name="details_duration">Dauer: %1$s</string>
+    <string name="details_codec">Codec: %1$s</string>
+    <string name="codec_unknown">unbekannt</string>
+    <string name="details_osd">OSD:</string>
+    <string name="details_firmware">Firmware: %1$s</string>
+    <string name="details_recorded_frames">Aufgezeichnete Frames: %1$d</string>
+    <string name="details_osd_duration">OSD-Dauer: %1$s</string>
+    <string name="details_empty">Lade die Quelldateien, um die technischen Details zu sehen.</string>
+
+    <string name="srt_title">SRT-Daten</string>
+    <string name="srt_hint">Lade eine Walksnail-.srt, um Flugzeit, Akkus, Signal, Latenz, Bitrate und Distanz zu zeichnen.</string>
+    <string name="srt_position_x">Position X: %1$s%</string>
+    <string name="srt_position_y">Position Y: %1$s%</string>
+    <string name="srt_scale">Skalierung: %1$s</string>
+    <string name="srt_reset_position">Standardposition</string>
+    <string name="srt_field_time">Flugzeit</string>
+    <string name="srt_field_sky_battery">Sky-Akku</string>
+    <string name="srt_field_ground_battery">Ground-Akku</string>
+    <string name="srt_field_signal">Signal</string>
+    <string name="srt_field_latency">Latenz</string>
+    <string name="srt_field_bitrate">Bitrate</string>
+    <string name="srt_field_distance">Distanz</string>
+
+    <string name="export_title">Export</string>
+    <string name="export_offset_x">Offset X: %1$d px</string>
+    <string name="export_offset_y">Offset Y: %1$d px</string>
+    <string name="export_center">Zentrieren</string>
+    <string name="export_reset">Zurücksetzen</string>
+    <string name="export_correct_speed">OSD-Geschwindigkeit korrigieren</string>
+    <string name="export_speed_hint">Für Walksnail-Firmware bis 32.37.10. Faktor %1$s× (Videodauer / OSD-Dauer).</string>
+    <string name="export_codec">Codec</string>
+    <string name="export_bitrate">Bitrate: %1$d Mbps</string>
+    <string name="export_hardware">Hardware-Encoder, mit Software-Fallback</string>
+    <string name="export_cancel">Abbrechen</string>
+    <string name="export_burn">Burn</string>
+
+    <string name="preview_content_description">Videovorschau mit OSD</string>
+    <string name="preview_no_frame">Kein Frame verfügbar</string>
+    <string name="preview_need_files">Lade MP4-Video, OSD-Datei und Schrift, um Vorschau und Navigation zu aktivieren.</string>
+    <string name="preview_move_slider">Bewege den Schieberegler unten, um einen Frame zu rendern.</string>
+    <string name="preview_frame">Frame: %1$d / %2$d</string>
+    <string name="preview_time">Zeit: %1$s</string>
+
+    <string name="status_exporting">Export läuft…</string>
+    <string name="status_export_error">Exportfehler: %1$s</string>
+    <string name="status_parsing_osd">OSD wird gelesen...</string>
+    <string name="status_osd_error">OSD-Fehler: %1$s</string>
+    <string name="status_font_error">Schriftfehler: %1$s</string>
+    <string name="status_font_error_short">Schriftfehler</string>
+    <string name="status_video_loaded">Video geladen: %1$s</string>
+    <string name="status_ready">Bereit - kein Video geladen</string>
+    <string name="status_no_video">Kein Video</string>
+    <string name="status_no_osd">Kein OSD</string>
+    <string name="status_font_ok">Schrift OK</string>
+    <string name="status_no_font">Keine Schrift</string>
+    <string name="status_video">Video: %1$s</string>
+    <string name="status_osd">OSD: %1$s</string>
+    <string name="status_font">Schrift: %1$s</string>
+    <string name="status_frame">Frame: %1$d</string>
+    <string name="status_video_summary">%1$dx%2$d @ %3$sfps</string>
+
+    <string name="burn_starting">Export wird gestartet…</string>
+    <string name="burn_saved">%1$s mit %2$s gespeichert</string>
+    <string name="burn_saved_software_fallback">%1$s mit %2$s gespeichert (Software-Fallback)</string>
+    <string name="burn_cancelled">Export abgebrochen</string>
+    <string name="burn_failed">Export fehlgeschlagen</string>
+    <string name="burn_progress">Frame %1$d / %2$d · %3$s</string>
+    <string name="burn_saved_progress">%1$s gespeichert · %2$s</string>
+    <string name="burn_hardware_unusable">Encoder %1$s ist nicht nutzbar. %2$s wird verwendet.</string>
+    <string name="burn_both_encoders_failed">Hardware-Encoder %1$s ist fehlgeschlagen (%2$s). %3$s ist ebenfalls fehlgeschlagen: %4$s</string>
+    <string name="burn_no_osd_frames">Die OSD-Datei enthält keine Frames.</string>
+    <string name="burn_ffmpeg_timeout">ffmpeg hat die Datei nicht rechtzeitig geschlossen. %1$s</string>
+    <string name="burn_ffmpeg_no_frames">ffmpeg hat keine Video-Frames erzeugt. %1$s</string>
+    <string name="burn_frame_buffer">Unerwarteter Frame-Puffer: %1$d Bytes statt %2$d.</string>
+    <string name="burn_ffmpeg_start">ffmpeg konnte nicht gestartet werden (%1$s): %2$s</string>
+    <string name="burn_ffmpeg_short_frame">ffmpeg hat das Video bei %1$d Bytes eines Frames von %2$d geschlossen.</string>
+    <string name="burn_same_file">Die Zieldatei ist dieselbe wie das Quellvideo.</string>
+    <string name="burn_bad_resolution">Die Videoauflösung ist ungültig.</string>
+    <string name="burn_odd_resolution">Die Auflösung %1$dx%2$d ist nicht gerade. H.264 und H.265 in yuv420p brauchen eine gerade Breite und Höhe.</string>
+    <string name="burn_bad_frame_rate">Die Bildrate des Videos ist ungültig.</string>
+    <string name="burn_bad_bitrate">Die Bitrate muss positiv sein.</string>
+    <string name="burn_encoder_stopped">ffmpeg hat den Encoder %1$s abgebrochen. %2$s</string>
+    <string name="burn_no_ffmpeg_detail">keine Details von ffmpeg</string>
+
+    <string name="error_srt_unreadable">Die SRT-Datei konnte nicht gelesen werden</string>
+    <string name="error_srt_empty">Die SRT-Datei enthält keine Untertitel.</string>
+    <string name="error_osd_unreadable">Die OSD-Datei konnte nicht gelesen werden</string>
+    <string name="error_osd_header">OSD-Header unvollständig: %1$d Bytes erwartet, %2$d erhalten</string>
+    <string name="error_osd_frame">OSD-Frame unvollständig: %1$d Bytes erwartet, %2$d erhalten</string>
+    <string name="error_osd_frame_length">Der OSD-Frame muss %1$d Bytes lang sein, ist aber %2$d</string>
+    <string name="error_fc_bytes">Die Bytes des Flight Controllers müssen mindestens 4 lang sein</string>
+    <string name="error_font_unreadable">Die OSD-Schrift konnte nicht gelesen werden</string>
+    <string name="error_font_width">Ungültige Schriftbreite: %1$d</string>
+    <string name="error_font_height">Ungültige Schrifthöhe: %1$d</string>
+    <string name="error_font_decode">Das Bild konnte nicht dekodiert werden: %1$s</string>
+
+    <string name="ffmpeg_not_found">ffmpeg ist nicht verfügbar. Der Export sucht zuerst das Binary aus den nativen JavaCV-Bibliotheken (dasselbe wie in den App-Paketen) und danach den Befehl ffmpeg im PATH. Installiere ffmpeg oder starte die App aus dem Paket, das diese Bibliotheken enthält.</string>
+    <string name="ffmpeg_not_found_with_detail">ffmpeg ist nicht verfügbar. Der Export sucht zuerst das Binary aus den nativen JavaCV-Bibliotheken (dasselbe wie in den App-Paketen) und danach den Befehl ffmpeg im PATH. Installiere ffmpeg oder starte die App aus dem Paket, das diese Bibliotheken enthält. Detail: %1$s</string>
+    <string name="ffmpeg_no_h264">Kein Software-Encoder für H.264. Das ffmpeg der JavaCV-Bibliotheken enthält libopenh264; sonst wird ein ffmpeg mit libx264 im PATH benötigt.</string>
+    <string name="ffmpeg_no_h265">Kein Software-Encoder für H.265. Das ffmpeg der JavaCV-Bibliotheken, das aus den Paketen, enthält kein libx265 (es ist ein LGPL-Build und nutzt für H.264 libopenh264). Installiere ffmpeg mit libx265 oder exportiere als H.264.</string>
+
+    <plurals name="srt_cues_with_distance">
+        <item quantity="one">%1$d Cue, mit Distanz</item>
+        <item quantity="other">%1$d Cues, mit Distanz</item>
+    </plurals>
+    <plurals name="srt_cues_without_distance">
+        <item quantity="one">%1$d Cue, ohne Distanz</item>
+        <item quantity="other">%1$d Cues, ohne Distanz</item>
+    </plurals>
+</resources>

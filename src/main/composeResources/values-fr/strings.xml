@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="window_title">Walksnail OSD</string>
+    <string name="menu_file">Fichier</string>
+    <string name="menu_file_mnemonic">F</string>
+    <string name="menu_open_video">Ouvrir la vidéo MP4...</string>
+    <string name="menu_open_osd">Ouvrir le fichier OSD...</string>
+    <string name="menu_open_srt">Ouvrir les sous-titres SRT...</string>
+    <string name="menu_open_font">Ouvrir la police OSD...</string>
+    <string name="menu_exit">Quitter</string>
+
+    <string name="dialog_open_video">Sélectionner la vidéo MP4</string>
+    <string name="dialog_open_osd">Sélectionner le fichier OSD</string>
+    <string name="dialog_open_srt">Sélectionner les sous-titres SRT</string>
+    <string name="dialog_open_font">Sélectionner la police OSD</string>
+    <string name="dialog_save_video">Enregistrer la vidéo avec l'OSD</string>
+
+    <string name="sidebar_source_files">Fichiers source</string>
+    <string name="file_video_mp4">Vidéo MP4</string>
+    <string name="file_osd_data">Données OSD (.osd)</string>
+    <string name="file_srt">Sous-titres (.srt)</string>
+    <string name="file_font">Police OSD (.png)</string>
+    <string name="file_none_selected">Aucun fichier sélectionné</string>
+    <string name="file_error">Erreur : %1$s</string>
+    <string name="file_select">Sélectionner...</string>
+
+    <string name="details_title">Détails vidéo et OSD</string>
+    <string name="details_video">Vidéo :</string>
+    <string name="details_resolution">Résolution : %1$dx%2$d</string>
+    <string name="details_frame_rate">Fréquence : %1$s fps</string>
+    <string name="details_total_frames">Images totales : %1$d</string>
+    <string name="details_duration">Durée : %1$s</string>
+    <string name="details_codec">Codec : %1$s</string>
+    <string name="codec_unknown">inconnu</string>
+    <string name="details_osd">OSD :</string>
+    <string name="details_firmware">Firmware : %1$s</string>
+    <string name="details_recorded_frames">Images OSD enregistrées : %1$d</string>
+    <string name="details_osd_duration">Durée OSD : %1$s</string>
+    <string name="details_empty">Charge les fichiers source pour afficher les détails techniques.</string>
+
+    <string name="srt_title">Données SRT</string>
+    <string name="srt_hint">Charge un .srt Walksnail pour afficher le temps de vol, les batteries, le signal, la latence, le bitrate et la distance.</string>
+    <string name="srt_position_x">Position X : %1$s%</string>
+    <string name="srt_position_y">Position Y : %1$s%</string>
+    <string name="srt_scale">Échelle : %1$s</string>
+    <string name="srt_reset_position">Position par défaut</string>
+    <string name="srt_field_time">Temps de vol</string>
+    <string name="srt_field_sky_battery">Batterie sky</string>
+    <string name="srt_field_ground_battery">Batterie ground</string>
+    <string name="srt_field_signal">Signal</string>
+    <string name="srt_field_latency">Latence</string>
+    <string name="srt_field_bitrate">Bitrate</string>
+    <string name="srt_field_distance">Distance</string>
+
+    <string name="export_title">Export</string>
+    <string name="export_offset_x">Décalage X : %1$d px</string>
+    <string name="export_offset_y">Décalage Y : %1$d px</string>
+    <string name="export_center">Centrer</string>
+    <string name="export_reset">Réinitialiser</string>
+    <string name="export_correct_speed">Corriger la vitesse OSD</string>
+    <string name="export_speed_hint">Pour les firmwares Walksnail jusqu'à 32.37.10. Facteur %1$s× (durée vidéo / durée OSD).</string>
+    <string name="export_codec">Codec</string>
+    <string name="export_bitrate">Bitrate : %1$d Mbps</string>
+    <string name="export_hardware">Encodeur matériel, avec repli logiciel</string>
+    <string name="export_cancel">Annuler</string>
+    <string name="export_burn">Burn</string>
+
+    <string name="preview_content_description">Aperçu vidéo avec OSD</string>
+    <string name="preview_no_frame">Aucune image disponible</string>
+    <string name="preview_need_files">Charge la vidéo MP4, le fichier OSD et la police pour activer l'aperçu et la navigation.</string>
+    <string name="preview_move_slider">Déplace le curseur ci-dessous pour afficher une image.</string>
+    <string name="preview_frame">Image : %1$d / %2$d</string>
+    <string name="preview_time">Temps : %1$s</string>
+
+    <string name="status_exporting">Export en cours…</string>
+    <string name="status_export_error">Erreur d'export : %1$s</string>
+    <string name="status_parsing_osd">Lecture de l'OSD...</string>
+    <string name="status_osd_error">Erreur OSD : %1$s</string>
+    <string name="status_font_error">Erreur de police : %1$s</string>
+    <string name="status_font_error_short">Erreur de police</string>
+    <string name="status_video_loaded">Vidéo chargée : %1$s</string>
+    <string name="status_ready">Prêt - aucune vidéo chargée</string>
+    <string name="status_no_video">Aucune vidéo</string>
+    <string name="status_no_osd">Aucun OSD</string>
+    <string name="status_font_ok">Police OK</string>
+    <string name="status_no_font">Aucune police</string>
+    <string name="status_video">Vidéo : %1$s</string>
+    <string name="status_osd">OSD : %1$s</string>
+    <string name="status_font">Police : %1$s</string>
+    <string name="status_frame">Image : %1$d</string>
+    <string name="status_video_summary">%1$dx%2$d @ %3$sfps</string>
+
+    <string name="burn_starting">Démarrage de l'export…</string>
+    <string name="burn_saved">%1$s enregistré avec %2$s</string>
+    <string name="burn_saved_software_fallback">%1$s enregistré avec %2$s (repli logiciel)</string>
+    <string name="burn_cancelled">Export annulé</string>
+    <string name="burn_failed">Échec de l'export</string>
+    <string name="burn_progress">Image %1$d / %2$d · %3$s</string>
+    <string name="burn_saved_progress">%1$s enregistré · %2$s</string>
+    <string name="burn_hardware_unusable">L'encodeur %1$s est inutilisable. Utilisation de %2$s.</string>
+    <string name="burn_both_encoders_failed">L'encodeur matériel %1$s a échoué (%2$s). %3$s a aussi échoué : %4$s</string>
+    <string name="burn_no_osd_frames">Le fichier OSD ne contient aucune image.</string>
+    <string name="burn_ffmpeg_timeout">ffmpeg n'a pas fermé le fichier à temps. %1$s</string>
+    <string name="burn_ffmpeg_no_frames">ffmpeg n'a produit aucune image vidéo. %1$s</string>
+    <string name="burn_frame_buffer">Tampon d'image inattendu : %1$d octets au lieu de %2$d.</string>
+    <string name="burn_ffmpeg_start">Impossible de démarrer ffmpeg (%1$s) : %2$s</string>
+    <string name="burn_ffmpeg_short_frame">ffmpeg a fermé la vidéo à %1$d octets d'une image de %2$d.</string>
+    <string name="burn_same_file">Le fichier de destination est le même que la vidéo source.</string>
+    <string name="burn_bad_resolution">La résolution vidéo n'est pas valide.</string>
+    <string name="burn_odd_resolution">La résolution %1$dx%2$d n'est pas paire. H.264 et H.265 en yuv420p exigent une largeur et une hauteur paires.</string>
+    <string name="burn_bad_frame_rate">La fréquence d'images de la vidéo n'est pas valide.</string>
+    <string name="burn_bad_bitrate">Le bitrate doit être positif.</string>
+    <string name="burn_encoder_stopped">ffmpeg a interrompu l'encodeur %1$s. %2$s</string>
+    <string name="burn_no_ffmpeg_detail">aucun détail de ffmpeg</string>
+
+    <string name="error_srt_unreadable">Impossible de lire le fichier SRT</string>
+    <string name="error_srt_empty">Le fichier SRT ne contient pas de sous-titres.</string>
+    <string name="error_osd_unreadable">Impossible de lire le fichier OSD</string>
+    <string name="error_osd_header">En-tête OSD incomplet : %1$d octets attendus, %2$d reçus</string>
+    <string name="error_osd_frame">Image OSD incomplète : %1$d octets attendus, %2$d reçus</string>
+    <string name="error_osd_frame_length">L'image OSD doit faire %1$d octets, mais elle en fait %2$d</string>
+    <string name="error_fc_bytes">Les octets du flight controller doivent en compter au moins 4</string>
+    <string name="error_font_unreadable">Impossible de lire la police OSD</string>
+    <string name="error_font_width">Largeur de police non valide : %1$d</string>
+    <string name="error_font_height">Hauteur de police non valide : %1$d</string>
+    <string name="error_font_decode">Impossible de décoder l'image : %1$s</string>
+
+    <string name="ffmpeg_not_found">ffmpeg n'est pas disponible. L'export cherche d'abord le binaire inclus dans les bibliothèques natives JavaCV (le même que dans les paquets de l'app), puis la commande ffmpeg dans le PATH. Installe ffmpeg, ou lance l'app depuis le paquet qui contient ces bibliothèques.</string>
+    <string name="ffmpeg_not_found_with_detail">ffmpeg n'est pas disponible. L'export cherche d'abord le binaire inclus dans les bibliothèques natives JavaCV (le même que dans les paquets de l'app), puis la commande ffmpeg dans le PATH. Installe ffmpeg, ou lance l'app depuis le paquet qui contient ces bibliothèques. Détail : %1$s</string>
+    <string name="ffmpeg_no_h264">Aucun encodeur H.264 logiciel. Le ffmpeg des bibliothèques JavaCV inclut libopenh264 ; sinon il faut un ffmpeg avec libx264 dans le PATH.</string>
+    <string name="ffmpeg_no_h265">Aucun encodeur H.265 logiciel. Le ffmpeg des bibliothèques JavaCV, celui des paquets, n'inclut pas libx265 (c'est une build LGPL et il utilise libopenh264 pour H.264). Installe ffmpeg avec libx265, ou exporte en H.264.</string>
+
+    <plurals name="srt_cues_with_distance">
+        <item quantity="one">%1$d cue, avec distance</item>
+        <item quantity="other">%1$d cues, avec distance</item>
+    </plurals>
+    <plurals name="srt_cues_without_distance">
+        <item quantity="one">%1$d cue, sans distance</item>
+        <item quantity="other">%1$d cues, sans distance</item>
+    </plurals>
+</resources>

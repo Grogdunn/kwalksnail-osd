@@ -1,6 +1,25 @@
 package dev.grogdunn.kwalksnailosd.video
 
+import dev.grogdunn.kwalksnailosd.generated.resources.Res
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_bad_bitrate
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_bad_frame_rate
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_bad_resolution
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_both_encoders_failed
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_encoder_stopped
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_ffmpeg_no_frames
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_ffmpeg_short_frame
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_ffmpeg_start
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_ffmpeg_timeout
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_frame_buffer
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_hardware_unusable
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_no_ffmpeg_detail
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_no_osd_frames
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_odd_resolution
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_progress
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_same_file
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_saved_progress
 import dev.grogdunn.kwalksnailosd.osd.Frame
+import dev.grogdunn.kwalksnailosd.uiText
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdRenderer
 import dev.grogdunn.kwalksnailosd.osd.font.Font
@@ -49,7 +68,7 @@ class VideoBurner(
         val speedFactor = osdPlaybackSpeedFactor(videoInfo.duration, osd.duration, settings.adjustPlaybackSpeed)
         val choice = selectEncoder(settings)
         val softwareBecauseHardwareIsMissing = settings.preferHardware && !choice.hardware
-        logger.info { "Burn con ${choice.name} (hardware=${choice.hardware}), fattore OSD $speedFactor, ffmpeg=$ffmpeg" }
+        logger.info { "Burn with ${choice.name} (hardware=${choice.hardware}), OSD factor $speedFactor, ffmpeg=$ffmpeg" }
         return try {
             encode(
                 input, output, videoInfo, osd, font, settings, choice, speedFactor,
@@ -63,8 +82,8 @@ class VideoBurner(
             deleteQuietly(output)
             if (!choice.hardware) throw failure
             val software = softwareEncoder(settings.codec)
-            logger.warn(failure) { "Encoder ${choice.name} non utilizzabile, fallback a ${software.name}" }
-            onProgress(BurnProgress(0f, "Encoder ${choice.name} non utilizzabile. Uso ${software.name}."))
+            logger.warn(failure) { "Encoder ${choice.name} unusable, falling back to ${software.name}" }
+            onProgress(BurnProgress(0f, uiText(Res.string.burn_hardware_unusable, choice.name, software.name)))
             try {
                 encode(
                     input, output, videoInfo, osd, font, settings, software, speedFactor,
@@ -76,8 +95,13 @@ class VideoBurner(
             } catch (softwareFailure: Exception) {
                 deleteQuietly(output)
                 throw VideoBurnException(
-                    "L'encoder hardware ${choice.name} non è riuscito (${failure.message}). " +
-                        "Anche ${software.name} è fallito: ${softwareFailure.message}",
+                    uiText(
+                        Res.string.burn_both_encoders_failed,
+                        choice.name,
+                        failure.message ?: uiText(Res.string.burn_no_ffmpeg_detail),
+                        software.name,
+                        softwareFailure.message ?: uiText(Res.string.burn_no_ffmpeg_detail),
+                    ),
                     softwareFailure,
                 )
             }
@@ -122,7 +146,7 @@ class VideoBurner(
                         }
                         val videoTimeMillis = framesWritten / videoInfo.frameRate * 1000.0
                         val osdFrame = osdFrameAt(osd.frames, videoTimeMillis, speedFactor)
-                            ?: throw VideoBurnException("Il file OSD non contiene frame.")
+                            ?: throw VideoBurnException(uiText(Res.string.burn_no_osd_frames))
                         drawOsd(raw, width, height, osdFrame, font, settings.offsetX, settings.offsetY, srt, srtOptions, videoTimeMillis)
                         encoded.write(raw)
                         framesWritten += 1
@@ -131,7 +155,7 @@ class VideoBurner(
                             onProgress(
                                 BurnProgress(
                                     fraction.coerceIn(0f, 1f),
-                                    "Frame $framesWritten / $expectedFrames · ${encoder.name}",
+                                    uiText(Res.string.burn_progress, framesWritten, expectedFrames, encoder.name),
                                 )
                             )
                         }
@@ -141,22 +165,22 @@ class VideoBurner(
             destroyQuietly(decoder)
             if (!encoderProcess.waitFor(30, TimeUnit.MINUTES)) {
                 destroyQuietly(encoderProcess)
-                throw VideoBurnException("ffmpeg non ha chiuso il file entro il tempo previsto. ${tail(encoderErrors)}")
+                throw VideoBurnException(uiText(Res.string.burn_ffmpeg_timeout, tail(encoderErrors)))
             }
             if (encoderProcess.exitValue() != 0) {
                 throw VideoBurnException(encoderFailureMessage(encoder, encoderErrors))
             }
             if (framesWritten == 0) {
-                throw VideoBurnException("ffmpeg non ha prodotto frame video. ${tail(decoderErrors)}")
+                throw VideoBurnException(uiText(Res.string.burn_ffmpeg_no_frames, tail(decoderErrors)))
             }
-            onProgress(BurnProgress(1f, "Salvato ${output.fileName} · ${encoder.name}"))
+            onProgress(BurnProgress(1f, uiText(Res.string.burn_saved_progress, output.fileName, encoder.name)))
             return BurnResult(output, encoder.name, encoder.hardware, framesWritten, usedSoftwareFallback)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (interrupted: InterruptedException) {
-            throw CancellationException("Burn annullato", interrupted)
+            throw CancellationException("Burn cancelled", interrupted)
         } catch (interrupted: InterruptedIOException) {
-            throw CancellationException("Burn annullato", interrupted)
+            throw CancellationException("Burn cancelled", interrupted)
         } catch (burn: VideoBurnException) {
             throw burn
         } catch (failure: Exception) {
@@ -182,7 +206,7 @@ class VideoBurner(
         val image = BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR)
         val raster = (image.raster.dataBuffer as DataBufferByte).data
         if (raster.size != bgr.size) {
-            throw VideoBurnException("Buffer del frame inatteso: ${raster.size} byte invece di ${bgr.size}.")
+            throw VideoBurnException(uiText(Res.string.burn_frame_buffer, raster.size, bgr.size))
         }
         System.arraycopy(bgr, 0, raster, 0, bgr.size)
         osdRenderer.renderInPlace(image, frame, font, offsetX, offsetY)
@@ -303,11 +327,11 @@ class VideoBurner(
             } else if (process.exitValue() == 0) {
                 true
             } else {
-                logger.info { "Encoder ${encoder.name} non disponibile: ${tail(errors)}" }
+                logger.info { "Encoder ${encoder.name} unavailable: ${tail(errors)}" }
                 false
             }
         } catch (failure: Exception) {
-            logger.info(failure) { "Probe di ${encoder.name} fallita" }
+            logger.info(failure) { "Probe of ${encoder.name} failed" }
             false
         }
         probeResults[encoder.name] = works
@@ -318,7 +342,10 @@ class VideoBurner(
         try {
             ProcessBuilder(command).forBundledFfmpeg(ffmpeg).start()
         } catch (failure: Exception) {
-            throw VideoBurnException("Impossibile avviare ffmpeg ($ffmpeg): ${failure.message}", failure)
+            throw VideoBurnException(
+                uiText(Res.string.burn_ffmpeg_start, ffmpeg, failure.message ?: uiText(Res.string.burn_no_ffmpeg_detail)),
+                failure,
+            )
         }
 
     private fun collectStderr(process: Process): StringBuilder {
@@ -348,7 +375,7 @@ class VideoBurner(
             val read = input.read(buffer, offset, buffer.size - offset)
             if (read < 0) {
                 if (offset == 0) return false
-                throw VideoBurnException("ffmpeg ha chiuso il video a $offset byte di un frame da ${buffer.size}.")
+                throw VideoBurnException(uiText(Res.string.burn_ffmpeg_short_frame, offset, buffer.size))
             }
             offset += read
         }
@@ -357,25 +384,22 @@ class VideoBurner(
 
     private fun validate(input: Path, output: Path, videoInfo: VideoInfo, osd: Osd, settings: BurnSettings) {
         if (input.toAbsolutePath().normalize() == output.toAbsolutePath().normalize()) {
-            throw VideoBurnException("Il file di destinazione è lo stesso del video di origine.")
+            throw VideoBurnException(uiText(Res.string.burn_same_file))
         }
         if (videoInfo.width <= 0 || videoInfo.height <= 0) {
-            throw VideoBurnException("Risoluzione video non valida.")
+            throw VideoBurnException(uiText(Res.string.burn_bad_resolution))
         }
         if (videoInfo.width % 2 != 0 || videoInfo.height % 2 != 0) {
-            throw VideoBurnException(
-                "La risoluzione ${videoInfo.width}x${videoInfo.height} non è pari. " +
-                    "H.264 e H.265 in yuv420p richiedono larghezza e altezza pari."
-            )
+            throw VideoBurnException(uiText(Res.string.burn_odd_resolution, videoInfo.width, videoInfo.height))
         }
         if (videoInfo.frameRate <= 0.0) {
-            throw VideoBurnException("Il frame rate del video non è valido.")
+            throw VideoBurnException(uiText(Res.string.burn_bad_frame_rate))
         }
         if (settings.bitrateMbps <= 0) {
-            throw VideoBurnException("Il bitrate deve essere positivo.")
+            throw VideoBurnException(uiText(Res.string.burn_bad_bitrate))
         }
         if (osd.frames.isEmpty()) {
-            throw VideoBurnException("Il file OSD non contiene frame.")
+            throw VideoBurnException(uiText(Res.string.burn_no_osd_frames))
         }
     }
 
@@ -385,12 +409,12 @@ class VideoBurner(
     }
 
     private fun throwIfCancelled(isCancelled: () -> Boolean) {
-        if (isCancelled()) throw CancellationException("Burn annullato")
+        if (isCancelled()) throw CancellationException("Burn cancelled")
     }
 
     private fun encoderFailureMessage(encoder: EncoderChoice, errors: StringBuilder, extra: String? = null): String {
-        val detail = tail(errors).ifBlank { extra ?: "nessun dettaglio da ffmpeg" }
-        return "ffmpeg ha interrotto l'encoder ${encoder.name}. $detail"
+        val detail = tail(errors).ifBlank { extra ?: uiText(Res.string.burn_no_ffmpeg_detail) }
+        return uiText(Res.string.burn_encoder_stopped, encoder.name, detail)
     }
 
     private fun tail(text: StringBuilder): String {
@@ -421,7 +445,7 @@ class VideoBurner(
         try {
             Files.deleteIfExists(output)
         } catch (failure: Exception) {
-            logger.warn(failure) { "Impossibile eliminare $output" }
+            logger.warn(failure) { "Could not delete $output" }
         }
     }
 

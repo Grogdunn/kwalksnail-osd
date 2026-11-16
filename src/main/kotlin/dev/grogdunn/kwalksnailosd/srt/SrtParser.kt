@@ -1,5 +1,8 @@
 package dev.grogdunn.kwalksnailosd.srt
 
+import dev.grogdunn.kwalksnailosd.generated.resources.Res
+import dev.grogdunn.kwalksnailosd.generated.resources.error_srt_empty
+import dev.grogdunn.kwalksnailosd.uiText
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -9,7 +12,7 @@ class SrtParser {
         val cues = text.split(Regex("\n\\s*\n"))
             .mapNotNull { parseBlock(it) }
         if (cues.isEmpty()) {
-            throw IllegalArgumentException("Il file SRT non contiene sottotitoli.")
+            throw IllegalArgumentException(uiText(Res.string.error_srt_empty))
         }
         return SrtFile(
             cues = cues,

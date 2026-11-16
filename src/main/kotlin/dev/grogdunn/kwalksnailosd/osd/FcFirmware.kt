@@ -1,5 +1,9 @@
 package dev.grogdunn.kwalksnailosd.osd
 
+import dev.grogdunn.kwalksnailosd.generated.resources.Res
+import dev.grogdunn.kwalksnailosd.generated.resources.error_fc_bytes
+import dev.grogdunn.kwalksnailosd.uiText
+
 enum class FcFirmware {
     BETAFLIGHT,
     INAV,
@@ -11,7 +15,7 @@ enum class FcFirmware {
     companion object {
         fun getFcFirmware(fcBytes: ByteArray): FcFirmware {
             if (fcBytes.size < 4) {
-                throw IllegalArgumentException("FC bytes must be at least 4 bytes long")
+                throw IllegalArgumentException(uiText(Res.string.error_fc_bytes))
             }
             return getFcFirmware(String(fcBytes, Charsets.UTF_8))
         }

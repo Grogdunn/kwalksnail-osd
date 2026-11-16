@@ -46,9 +46,12 @@ import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import dev.grogdunn.kwalksnailosd.generated.resources.*
 import dev.grogdunn.kwalksnailosd.osd.osdPlaybackSpeedFactor
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.outputNameFor
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import java.time.Duration
 import kotlin.math.roundToInt
 
@@ -67,25 +70,32 @@ fun main() = application {
             stateHolder.close()
             exitApplication()
         },
-        title = "Walksnail OSD",
+        title = stringResource(Res.string.window_title),
         state = windowState
     ) {
+        val openVideoTitle = stringResource(Res.string.dialog_open_video)
+        val openOsdTitle = stringResource(Res.string.dialog_open_osd)
+        val openSrtTitle = stringResource(Res.string.dialog_open_srt)
+        val openFontTitle = stringResource(Res.string.dialog_open_font)
         MenuBar {
-            Menu("File", mnemonic = 'F') {
-                Item("Apri Video MP4...", onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("mp4"), onCloseRequest = stateHolder::onFilePickerClosed)
+            Menu(
+                stringResource(Res.string.menu_file),
+                mnemonic = stringResource(Res.string.menu_file_mnemonic).single(),
+            ) {
+                Item(stringResource(Res.string.menu_open_video), onClick = {
+                    desktopFileDialog(openVideoTitle, allowedExtensions = listOf("mp4"), onCloseRequest = stateHolder::onFilePickerClosed)
                 })
-                Item("Apri File OSD...", onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("osd"), onCloseRequest = stateHolder::onFilePickerClosed)
+                Item(stringResource(Res.string.menu_open_osd), onClick = {
+                    desktopFileDialog(openOsdTitle, allowedExtensions = listOf("osd"), onCloseRequest = stateHolder::onFilePickerClosed)
                 })
-                Item("Apri Sottotitoli SRT...", onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
+                Item(stringResource(Res.string.menu_open_srt), onClick = {
+                    desktopFileDialog(openSrtTitle, allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
                 })
-                Item("Apri Font OSD...", onClick = {
-                    desktopFileDialog(allowedExtensions = listOf("png"), onCloseRequest = stateHolder::onFontFilePickerClosed)
+                Item(stringResource(Res.string.menu_open_font), onClick = {
+                    desktopFileDialog(openFontTitle, allowedExtensions = listOf("png"), onCloseRequest = stateHolder::onFontFilePickerClosed)
                 })
                 Separator()
-                Item("Esci", onClick = {
+                Item(stringResource(Res.string.menu_exit), onClick = {
                     stateHolder.close()
                     exitApplication()
                 })
@@ -158,6 +168,10 @@ private fun LeftSidebarPanel(
 ) {
     val state = stateHolder.state
     val scrollState = rememberScrollState()
+    val openVideoTitle = stringResource(Res.string.dialog_open_video)
+    val openOsdTitle = stringResource(Res.string.dialog_open_osd)
+    val openSrtTitle = stringResource(Res.string.dialog_open_srt)
+    val openFontTitle = stringResource(Res.string.dialog_open_font)
 
     Column(
         modifier = modifier
@@ -167,45 +181,45 @@ private fun LeftSidebarPanel(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "File Sorgente",
+            text = stringResource(Res.string.sidebar_source_files),
             style = MaterialTheme.typography.subtitle1,
             fontWeight = FontWeight.Bold
         )
 
         FileSelectorCard(
-            title = "Video MP4",
+            title = stringResource(Res.string.file_video_mp4),
             fileName = state.selectedMp4?.fileName?.toString(),
             onSelectClick = {
-                desktopFileDialog(allowedExtensions = listOf("mp4"), onCloseRequest = stateHolder::onFilePickerClosed)
+                desktopFileDialog(openVideoTitle, allowedExtensions = listOf("mp4"), onCloseRequest = stateHolder::onFilePickerClosed)
             }
         )
 
         FileSelectorCard(
-            title = "Dati OSD (.osd)",
+            title = stringResource(Res.string.file_osd_data),
             fileName = state.selectedOsd?.fileName?.toString(),
             isLoading = state.isParsingOsd,
             errorMessage = state.osdError,
             onSelectClick = {
-                desktopFileDialog(allowedExtensions = listOf("osd"), onCloseRequest = stateHolder::onFilePickerClosed)
+                desktopFileDialog(openOsdTitle, allowedExtensions = listOf("osd"), onCloseRequest = stateHolder::onFilePickerClosed)
             }
         )
 
         FileSelectorCard(
-            title = "Sottotitoli (.srt)",
+            title = stringResource(Res.string.file_srt),
             fileName = state.selectedSrt?.fileName?.toString(),
             isLoading = state.isParsingSrt,
             errorMessage = state.srtError,
             onSelectClick = {
-                desktopFileDialog(allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
+                desktopFileDialog(openSrtTitle, allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
             }
         )
 
         FileSelectorCard(
-            title = "Font OSD (.png)",
+            title = stringResource(Res.string.file_font),
             fileName = state.selectedFont?.fileName?.toString(),
             errorMessage = state.fontError,
             onSelectClick = {
-                desktopFileDialog(allowedExtensions = listOf("png"), onCloseRequest = stateHolder::onFontFilePickerClosed)
+                desktopFileDialog(openFontTitle, allowedExtensions = listOf("png"), onCloseRequest = stateHolder::onFontFilePickerClosed)
             }
         )
     }
@@ -235,24 +249,26 @@ private fun RightSidebarPanel(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Dettagli Video & OSD",
+                text = stringResource(Res.string.details_title),
                 style = MaterialTheme.typography.subtitle1,
                 fontWeight = FontWeight.Bold
             )
 
             if (state.videoInfo != null) {
+                val codec = state.videoInfo.codec
+                val codecLabel = if (codec == "unknown") stringResource(Res.string.codec_unknown) else codec
                 Card(
                     elevation = 0.dp,
                     modifier = Modifier.fillMaxWidth(),
                     backgroundColor = MaterialTheme.colors.surface
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Video:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.caption)
-                        Text("Risoluzione: ${state.videoInfo.width}x${state.videoInfo.height}", style = MaterialTheme.typography.body2)
-                        Text("Frame Rate: ${"%.2f".format(state.videoInfo.frameRate)} fps", style = MaterialTheme.typography.body2)
-                        Text("Totale Frame: ${state.videoInfo.frameNumber}", style = MaterialTheme.typography.body2)
-                        Text("Durata: ${formatDuration(state.videoInfo.duration)}", style = MaterialTheme.typography.body2)
-                        Text("Codec: ${state.videoInfo.codec}", style = MaterialTheme.typography.body2)
+                        Text(stringResource(Res.string.details_video), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.caption)
+                        Text(stringResource(Res.string.details_resolution, state.videoInfo.width, state.videoInfo.height), style = MaterialTheme.typography.body2)
+                        Text(stringResource(Res.string.details_frame_rate, "%.2f".format(state.videoInfo.frameRate)), style = MaterialTheme.typography.body2)
+                        Text(stringResource(Res.string.details_total_frames, state.videoInfo.frameNumber), style = MaterialTheme.typography.body2)
+                        Text(stringResource(Res.string.details_duration, formatDuration(state.videoInfo.duration)), style = MaterialTheme.typography.body2)
+                        Text(stringResource(Res.string.details_codec, codecLabel), style = MaterialTheme.typography.body2)
                     }
                 }
             }
@@ -264,17 +280,17 @@ private fun RightSidebarPanel(
                     backgroundColor = MaterialTheme.colors.surface
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("OSD:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.caption)
-                        Text("Firmware: ${state.osd.fcFirmware}", style = MaterialTheme.typography.body2)
-                        Text("Frame registrati: ${state.osd.frames.size}", style = MaterialTheme.typography.body2)
-                        Text("Durata OSD: ${formatDuration(state.osd.duration)}", style = MaterialTheme.typography.body2)
+                        Text(stringResource(Res.string.details_osd), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.caption)
+                        Text(stringResource(Res.string.details_firmware, state.osd.fcFirmware), style = MaterialTheme.typography.body2)
+                        Text(stringResource(Res.string.details_recorded_frames, state.osd.frames.size), style = MaterialTheme.typography.body2)
+                        Text(stringResource(Res.string.details_osd_duration, formatDuration(state.osd.duration)), style = MaterialTheme.typography.body2)
                     }
                 }
             }
 
             if (state.videoInfo == null && state.osd == null) {
                 Text(
-                    text = "Carica i file sorgente per visualizzare i dettagli tecnici.",
+                    text = stringResource(Res.string.details_empty),
                     style = MaterialTheme.typography.caption,
                     color = Color.Gray
                 )
@@ -297,31 +313,33 @@ private fun SrtOverlayOptions(stateHolder: AppStateHolder) {
     val enabled = !state.isBurning && state.srt != null
     val distanceEnabled = enabled && state.srt.hasDistance
 
-    Text("Dati SRT", style = MaterialTheme.typography.subtitle2, fontWeight = FontWeight.Bold)
+    Text(stringResource(Res.string.srt_title), style = MaterialTheme.typography.subtitle2, fontWeight = FontWeight.Bold)
     Text(
         text = if (state.srt == null) {
-            "Carica un .srt Walksnail per disegnare tempo di volo, batterie, segnale, latenza, bitrate e distanza."
+            stringResource(Res.string.srt_hint)
+        } else if (state.srt.hasDistance) {
+            pluralStringResource(Res.plurals.srt_cues_with_distance, state.srt.cues.size, state.srt.cues.size)
         } else {
-            "${state.srt.cues.size} cue" + if (state.srt.hasDistance) ", con distanza" else ", senza distanza"
+            pluralStringResource(Res.plurals.srt_cues_without_distance, state.srt.cues.size, state.srt.cues.size)
         },
         style = MaterialTheme.typography.caption,
         color = Color.Gray
     )
-    Text("Posizione X: ${"%.1f".format(options.xPercent)}%", style = MaterialTheme.typography.caption)
+    Text(stringResource(Res.string.srt_position_x, "%.1f".format(options.xPercent)), style = MaterialTheme.typography.caption)
     Slider(
         value = options.xPercent,
         onValueChange = { stateHolder.setSrtOptions(options.copy(xPercent = it)) },
         valueRange = 0f..100f,
         enabled = enabled,
     )
-    Text("Posizione Y: ${"%.1f".format(options.yPercent)}%", style = MaterialTheme.typography.caption)
+    Text(stringResource(Res.string.srt_position_y, "%.1f".format(options.yPercent)), style = MaterialTheme.typography.caption)
     Slider(
         value = options.yPercent,
         onValueChange = { stateHolder.setSrtOptions(options.copy(yPercent = it)) },
         valueRange = 0f..100f,
         enabled = enabled,
     )
-    Text("Scala: ${"%.0f".format(options.scale)}", style = MaterialTheme.typography.caption)
+    Text(stringResource(Res.string.srt_scale, "%.0f".format(options.scale)), style = MaterialTheme.typography.caption)
     Slider(
         value = options.scale,
         onValueChange = { stateHolder.setSrtOptions(options.copy(scale = it)) },
@@ -329,15 +347,15 @@ private fun SrtOverlayOptions(stateHolder: AppStateHolder) {
         enabled = enabled,
     )
     OutlinedButton(onClick = stateHolder::resetSrtPlacement, enabled = enabled) {
-        Text("Posizione predefinita", fontSize = 12.sp)
+        Text(stringResource(Res.string.srt_reset_position), fontSize = 12.sp)
     }
-    SrtFieldCheckbox("Tempo di volo", options.showTime, enabled) { stateHolder.setSrtOptions(options.copy(showTime = it)) }
-    SrtFieldCheckbox("Batteria sky", options.showSkyBattery, enabled) { stateHolder.setSrtOptions(options.copy(showSkyBattery = it)) }
-    SrtFieldCheckbox("Batteria ground", options.showGroundBattery, enabled) { stateHolder.setSrtOptions(options.copy(showGroundBattery = it)) }
-    SrtFieldCheckbox("Segnale", options.showSignal, enabled) { stateHolder.setSrtOptions(options.copy(showSignal = it)) }
-    SrtFieldCheckbox("Latenza", options.showLatency, enabled) { stateHolder.setSrtOptions(options.copy(showLatency = it)) }
-    SrtFieldCheckbox("Bitrate", options.showBitrate, enabled) { stateHolder.setSrtOptions(options.copy(showBitrate = it)) }
-    SrtFieldCheckbox("Distanza", options.showDistance, distanceEnabled) {
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_time), options.showTime, enabled) { stateHolder.setSrtOptions(options.copy(showTime = it)) }
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_sky_battery), options.showSkyBattery, enabled) { stateHolder.setSrtOptions(options.copy(showSkyBattery = it)) }
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_ground_battery), options.showGroundBattery, enabled) { stateHolder.setSrtOptions(options.copy(showGroundBattery = it)) }
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_signal), options.showSignal, enabled) { stateHolder.setSrtOptions(options.copy(showSignal = it)) }
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_latency), options.showLatency, enabled) { stateHolder.setSrtOptions(options.copy(showLatency = it)) }
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_bitrate), options.showBitrate, enabled) { stateHolder.setSrtOptions(options.copy(showBitrate = it)) }
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_distance), options.showDistance, distanceEnabled) {
         stateHolder.setSrtOptions(options.copy(showDistance = it))
     }
 }
@@ -361,19 +379,19 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
     }
 
     Text(
-        text = "Export",
+        text = stringResource(Res.string.export_title),
         style = MaterialTheme.typography.subtitle1,
         fontWeight = FontWeight.Bold
     )
 
-    Text("Offset X: ${state.osdOffsetX} px", style = MaterialTheme.typography.caption)
+    Text(stringResource(Res.string.export_offset_x, state.osdOffsetX), style = MaterialTheme.typography.caption)
     Slider(
         value = state.osdOffsetX.toFloat(),
         onValueChange = { stateHolder.setOsdOffset(it.roundToInt(), state.osdOffsetY) },
         valueRange = -200f..700f,
         enabled = controlsEnabled,
     )
-    Text("Offset Y: ${state.osdOffsetY} px", style = MaterialTheme.typography.caption)
+    Text(stringResource(Res.string.export_offset_y, state.osdOffsetY), style = MaterialTheme.typography.caption)
     Slider(
         value = state.osdOffsetY.toFloat(),
         onValueChange = { stateHolder.setOsdOffset(state.osdOffsetX, it.roundToInt()) },
@@ -382,10 +400,10 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
     )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(onClick = stateHolder::centerOsd, enabled = controlsEnabled) {
-            Text("Centra", fontSize = 12.sp)
+            Text(stringResource(Res.string.export_center), fontSize = 12.sp)
         }
         OutlinedButton(onClick = stateHolder::resetOsdOffset, enabled = controlsEnabled) {
-            Text("Azzera", fontSize = 12.sp)
+            Text(stringResource(Res.string.export_reset), fontSize = 12.sp)
         }
     }
 
@@ -395,15 +413,15 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
             onCheckedChange = stateHolder::setAdjustOsdPlaybackSpeed,
             enabled = controlsEnabled,
         )
-        Text("Correggi velocità OSD", style = MaterialTheme.typography.body2)
+        Text(stringResource(Res.string.export_correct_speed), style = MaterialTheme.typography.body2)
     }
     Text(
-        text = "Per i firmware Walksnail fino al 32.37.10. Fattore ${"%.3f".format(speedFactor)}× (durata video / durata OSD).",
+        text = stringResource(Res.string.export_speed_hint, "%.3f".format(speedFactor)),
         style = MaterialTheme.typography.caption,
         color = Color.Gray
     )
 
-    Text("Codec", style = MaterialTheme.typography.caption)
+    Text(stringResource(Res.string.export_codec), style = MaterialTheme.typography.caption)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         VideoCodec.entries.forEach { codec ->
             OutlinedButton(
@@ -418,7 +436,7 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
         }
     }
 
-    Text("Bitrate: ${state.burnBitrateMbps} Mbps", style = MaterialTheme.typography.caption)
+    Text(stringResource(Res.string.export_bitrate, state.burnBitrateMbps), style = MaterialTheme.typography.caption)
     Slider(
         value = state.burnBitrateMbps.toFloat(),
         onValueChange = { stateHolder.setBurnBitrateMbps(it.roundToInt()) },
@@ -432,7 +450,7 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
             enabled = controlsEnabled,
         )
         Text(
-            "Encoder hardware, con fallback software",
+            stringResource(Res.string.export_hardware),
             style = MaterialTheme.typography.body2,
             modifier = Modifier.weight(1f)
         )
@@ -443,6 +461,7 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
 private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
     val state = stateHolder.state
     val canBurn = state.osd != null && state.videoInfo != null && state.font != null && state.selectedMp4 != null
+    val saveTitle = stringResource(Res.string.dialog_save_video)
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.isBurning || state.burnMessage != null) {
@@ -460,13 +479,13 @@ private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             if (state.isBurning) {
                 OutlinedButton(onClick = stateHolder::cancelBurn) {
-                    Text("Annulla", fontSize = 12.sp)
+                    Text(stringResource(Res.string.export_cancel), fontSize = 12.sp)
                 }
             } else {
                 OutlinedButton(
                     onClick = {
                         val input = state.selectedMp4 ?: return@OutlinedButton
-                        desktopSaveDialog(outputNameFor(input)) { path ->
+                        desktopSaveDialog(outputNameFor(input), saveTitle) { path ->
                             if (path != null) stateHolder.startBurn(path)
                         }
                     },
@@ -476,7 +495,7 @@ private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
                     ),
                     enabled = canBurn
                 ) {
-                    Text("Burn", fontSize = 12.sp)
+                    Text(stringResource(Res.string.export_burn), fontSize = 12.sp)
                 }
             }
         }
@@ -516,7 +535,7 @@ private fun FileSelectorCard(
             }
 
             Text(
-                text = fileName ?: "Nessun file selezionato",
+                text = fileName ?: stringResource(Res.string.file_none_selected),
                 style = MaterialTheme.typography.body2,
                 color = if (fileName != null) MaterialTheme.colors.onSurface else Color.Gray,
                 maxLines = 1,
@@ -525,7 +544,7 @@ private fun FileSelectorCard(
 
             if (errorMessage != null) {
                 Text(
-                    text = "Errore: $errorMessage",
+                    text = stringResource(Res.string.file_error, errorMessage),
                     style = MaterialTheme.typography.caption,
                     color = MaterialTheme.colors.error
                 )
@@ -536,7 +555,7 @@ private fun FileSelectorCard(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = ButtonDefaults.ContentPadding
             ) {
-                Text("Seleziona...", fontSize = 12.sp)
+                Text(stringResource(Res.string.file_select), fontSize = 12.sp)
             }
         }
     }
@@ -569,7 +588,7 @@ private fun VideoPreviewAndControls(
             if (state.bitmap != null) {
                 Image(
                     bitmap = state.bitmap,
-                    contentDescription = "Anteprima Video con OSD",
+                    contentDescription = stringResource(Res.string.preview_content_description),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit
                 )
@@ -580,16 +599,16 @@ private fun VideoPreviewAndControls(
                     modifier = Modifier.padding(24.dp)
                 ) {
                     Text(
-                        text = "Nessun frame disponibile",
+                        text = stringResource(Res.string.preview_no_frame),
                         style = MaterialTheme.typography.h6,
                         color = Color.LightGray
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = if (!isControlsEnabled) {
-                            "Assicurati di aver caricato Video MP4, File OSD e Font per abilitare l'anteprima e la navigazione."
+                            stringResource(Res.string.preview_need_files)
                         } else {
-                            "Muovi lo slider sottostante per renderizzare un frame."
+                            stringResource(Res.string.preview_move_slider)
                         },
                         style = MaterialTheme.typography.body2,
                         color = Color.Gray,
@@ -623,13 +642,13 @@ private fun VideoPreviewAndControls(
                     val currentSeconds = currentFrameInt / fps
 
                     Text(
-                        text = "Frame: $currentFrameInt / $totalFrames",
+                        text = stringResource(Res.string.preview_frame, currentFrameInt, totalFrames),
                         style = MaterialTheme.typography.subtitle2,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "Tempo: ${formatTimestamp(currentSeconds)}",
+                        text = stringResource(Res.string.preview_time, formatTimestamp(currentSeconds)),
                         style = MaterialTheme.typography.body2,
                         fontFamily = FontFamily.Monospace,
                         color = MaterialTheme.colors.onSurface
@@ -729,25 +748,25 @@ private fun StatusBar(
                 when {
                     state.isBurning -> {
                         CircularProgressIndicator(modifier = Modifier.height(12.dp).width(12.dp), strokeWidth = 2.dp)
-                        Text(state.burnMessage ?: "Export in corso…", style = MaterialTheme.typography.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(state.burnMessage ?: stringResource(Res.string.status_exporting), style = MaterialTheme.typography.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
 
                     state.burnError != null -> {
-                        Text("Errore export: ${state.burnError}", style = MaterialTheme.typography.caption, color = MaterialTheme.colors.error, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(stringResource(Res.string.status_export_error, state.burnError), style = MaterialTheme.typography.caption, color = MaterialTheme.colors.error, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
 
                     state.isParsingOsd -> {
                         CircularProgressIndicator(modifier = Modifier.height(12.dp).width(12.dp), strokeWidth = 2.dp)
-                        Text("Analisi OSD in corso...", style = MaterialTheme.typography.caption)
+                        Text(stringResource(Res.string.status_parsing_osd), style = MaterialTheme.typography.caption)
                     }
 
                     state.osdError != null -> {
-                        Text("Errore OSD: ${state.osdError}", style = MaterialTheme.typography.caption, color = MaterialTheme.colors.error)
+                        Text(stringResource(Res.string.status_osd_error, state.osdError), style = MaterialTheme.typography.caption, color = MaterialTheme.colors.error)
                     }
 
                     state.fontError != null -> {
                         Text(
-                            "Errore font: ${state.fontError}",
+                            stringResource(Res.string.status_font_error, state.fontError),
                             style = MaterialTheme.typography.caption,
                             color = MaterialTheme.colors.error,
                             maxLines = 1,
@@ -756,11 +775,11 @@ private fun StatusBar(
                     }
 
                     state.selectedMp4 != null -> {
-                        Text("Video caricato: ${state.selectedMp4.fileName}", style = MaterialTheme.typography.caption)
+                        Text(stringResource(Res.string.status_video_loaded, state.selectedMp4.fileName), style = MaterialTheme.typography.caption)
                     }
 
                     else -> {
-                        Text("Pronto - Nessun video caricato", style = MaterialTheme.typography.caption, color = Color.Gray)
+                        Text(stringResource(Res.string.status_ready), style = MaterialTheme.typography.caption, color = Color.Gray)
                     }
                 }
             }
@@ -770,22 +789,24 @@ private fun StatusBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                val videoStatus = state.videoInfo?.let { "${it.width}x${it.height} @ ${"%.0f".format(it.frameRate)}fps" } ?: "Nessun video"
-                val osdStatus = state.osd?.let { "${it.fcFirmware}" } ?: "Nessun OSD"
+                val videoStatus = state.videoInfo?.let {
+                    stringResource(Res.string.status_video_summary, it.width, it.height, "%.0f".format(it.frameRate))
+                } ?: stringResource(Res.string.status_no_video)
+                val osdStatus = state.osd?.fcFirmware?.toString() ?: stringResource(Res.string.status_no_osd)
                 val fontStatus = when {
-                    state.fontError != null -> "Errore font"
-                    state.font != null -> "Font OK"
-                    else -> "Nessun font"
+                    state.fontError != null -> stringResource(Res.string.status_font_error_short)
+                    state.font != null -> stringResource(Res.string.status_font_ok)
+                    else -> stringResource(Res.string.status_no_font)
                 }
 
-                Text("Video: $videoStatus", style = MaterialTheme.typography.caption, color = Color.Gray)
-                Text("OSD: $osdStatus", style = MaterialTheme.typography.caption, color = Color.Gray)
+                Text(stringResource(Res.string.status_video, videoStatus), style = MaterialTheme.typography.caption, color = Color.Gray)
+                Text(stringResource(Res.string.status_osd, osdStatus), style = MaterialTheme.typography.caption, color = Color.Gray)
                 Text(
-                    "Font: $fontStatus",
+                    stringResource(Res.string.status_font, fontStatus),
                     style = MaterialTheme.typography.caption,
                     color = if (state.fontError != null) MaterialTheme.colors.error else Color.Gray
                 )
-                Text("Frame: ${state.selectedFrame.roundToInt()}", style = MaterialTheme.typography.caption, fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.status_frame, state.selectedFrame.roundToInt()), style = MaterialTheme.typography.caption, fontWeight = FontWeight.Bold)
             }
         }
     }

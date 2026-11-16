@@ -1,5 +1,11 @@
 package dev.grogdunn.kwalksnailosd.video
 
+import dev.grogdunn.kwalksnailosd.generated.resources.Res
+import dev.grogdunn.kwalksnailosd.generated.resources.ffmpeg_no_h264
+import dev.grogdunn.kwalksnailosd.generated.resources.ffmpeg_no_h265
+import dev.grogdunn.kwalksnailosd.generated.resources.ffmpeg_not_found
+import dev.grogdunn.kwalksnailosd.generated.resources.ffmpeg_not_found_with_detail
+import dev.grogdunn.kwalksnailosd.uiText
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -21,8 +27,13 @@ class FfmpegLocator(
         FfmpegEncoders.clearFailure()
         val candidates = runnableCandidates()
         if (candidates.isEmpty()) {
-            val detail = FfmpegEncoders.lastFailure?.let { " Dettaglio: $it" }.orEmpty()
-            throw FfmpegNotFoundException(FFMPEG_NOT_FOUND_MESSAGE + detail)
+            val failure = FfmpegEncoders.lastFailure
+            val message = if (failure == null) {
+                uiText(Res.string.ffmpeg_not_found)
+            } else {
+                uiText(Res.string.ffmpeg_not_found_with_detail, failure)
+            }
+            throw FfmpegNotFoundException(message)
         }
         for (encoder in softwareEncoderNames(codec)) {
             for (candidate in candidates) {
@@ -45,24 +56,24 @@ class FfmpegLocator(
                 .redirectErrorStream(true)
                 .start()
         } catch (failure: Exception) {
-            FfmpegEncoders.recordFailure("avvio di $path: ${failure.message}")
+            FfmpegEncoders.recordFailure("failed to start $path: ${failure.message}")
             return false
         }
         val output = process.inputStream.bufferedReader().use { it.readText() }
         return try {
             if (!process.waitFor(5, TimeUnit.SECONDS)) {
                 process.destroyForcibly()
-                FfmpegEncoders.recordFailure("timeout su $path -version")
+                FfmpegEncoders.recordFailure("timeout running $path -version")
                 false
             } else if (process.exitValue() == 0) {
                 true
             } else {
-                FfmpegEncoders.recordFailure("exit ${process.exitValue()} su $path: ${output.take(500)}")
+                FfmpegEncoders.recordFailure("exit ${process.exitValue()} from $path: ${output.take(500)}")
                 false
             }
         } catch (failure: Exception) {
             process.destroyForcibly()
-            FfmpegEncoders.recordFailure("avvio di $path: ${failure.message}")
+            FfmpegEncoders.recordFailure("failed to start $path: ${failure.message}")
             false
         }
     }
@@ -83,7 +94,7 @@ class FfmpegLocator(
                 lastLoadError = null
                 path
             } else {
-                lastLoadError = "estratto ma non è un file: $path"
+                lastLoadError = "extracted but not a file: $path"
                 null
             }
         } catch (failure: Throwable) {
@@ -147,7 +158,7 @@ object FfmpegEncoders {
                     } else {
                         text.lineSequence().filter { line -> line.contains("264") || line.contains("265") }.take(6)
                             .joinToString(" | ")
-                            .ifBlank { "encoder $encoder assente" }
+                            .ifBlank { "encoder $encoder missing" }
                     },
                 )
             }
@@ -164,21 +175,11 @@ object FfmpegEncoders {
 fun softwareEncoderNames(codec: VideoCodec): List<String> = FfmpegEncoders.softwareNames(codec)
 
 fun noSoftwareEncoderMessage(codec: VideoCodec): String = when (codec) {
-    VideoCodec.H264 ->
-        "Nessun encoder H.264 software. L'ffmpeg delle librerie JavaCV include libopenh264; " +
-            "in alternativa serve un ffmpeg con libx264 nel PATH."
-    VideoCodec.H265 ->
-        "Nessun encoder H.265 software. L'ffmpeg delle librerie JavaCV, quello dei pacchetti, " +
-            "non include libx265 (è una build LGPL e per H.264 usa libopenh264). " +
-            "Installa ffmpeg con libx265, oppure esporta in H.264."
+    VideoCodec.H264 -> uiText(Res.string.ffmpeg_no_h264)
+    VideoCodec.H265 -> uiText(Res.string.ffmpeg_no_h265)
 }
 
 class FfmpegNotFoundException(message: String) : RuntimeException(message)
-
-const val FFMPEG_NOT_FOUND_MESSAGE =
-    "ffmpeg non è disponibile. L'export cerca prima il binario incluso nelle librerie native JavaCV " +
-        "(lo stesso dei pacchetti dell'app) e poi il comando ffmpeg nel PATH. " +
-        "Installa ffmpeg, oppure avvia l'app dal pacchetto che include quelle librerie."
 
 /**
  * Il binario JavaCV ha RUNPATH `$ORIGIN`. `LD_LIBRARY_PATH` del processo (per esempio

@@ -5,6 +5,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import dev.grogdunn.kwalksnailosd.generated.resources.Res
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_cancelled
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_failed
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_saved
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_saved_software_fallback
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_starting
+import dev.grogdunn.kwalksnailosd.generated.resources.error_font_unreadable
+import dev.grogdunn.kwalksnailosd.generated.resources.error_osd_unreadable
+import dev.grogdunn.kwalksnailosd.generated.resources.error_srt_unreadable
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
 import dev.grogdunn.kwalksnailosd.osd.OsdRenderer
@@ -133,7 +142,7 @@ class AppStateHolder(
             throw exception
         } catch (exception: Exception) {
             logger.error(exception) { "Failed to read OSD font $path" }
-            state = state.copy(font = null, fontError = exception.message ?: "Impossibile leggere il font OSD")
+            state = state.copy(font = null, fontError = exception.message ?: uiText(Res.string.error_font_unreadable))
         }
     }
 
@@ -161,7 +170,7 @@ class AppStateHolder(
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            state = state.copy(srt = null, srtError = exception.message ?: "Impossibile leggere il file SRT")
+            state = state.copy(srt = null, srtError = exception.message ?: uiText(Res.string.error_srt_unreadable))
         } finally {
             state = state.copy(isParsingSrt = false)
         }
@@ -177,7 +186,7 @@ class AppStateHolder(
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            state = state.copy(osd = null, osdError = exception.message ?: "Unable to parse OSD file")
+            state = state.copy(osd = null, osdError = exception.message ?: uiText(Res.string.error_osd_unreadable))
         } finally {
             state = state.copy(isParsingOsd = false)
         }
@@ -269,7 +278,7 @@ class AppStateHolder(
         val srt = state.srt
         val srtOptions = state.srtOptions
         val generation = ++burnGeneration
-        state = state.copy(isBurning = true, burnProgress = 0f, burnMessage = "Avvio dell'export…", burnError = null)
+        state = state.copy(isBurning = true, burnProgress = 0f, burnMessage = uiText(Res.string.burn_starting), burnError = null)
         burnJob = scope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
@@ -289,18 +298,22 @@ class AppStateHolder(
                 }
                 SwingUtilities.invokeLater {
                     if (generation != burnGeneration) return@invokeLater
-                    val fallback = if (result.usedSoftwareFallback) " (fallback software)" else ""
+                    val saved = if (result.usedSoftwareFallback) {
+                        uiText(Res.string.burn_saved_software_fallback, result.output.fileName, result.encoderName)
+                    } else {
+                        uiText(Res.string.burn_saved, result.output.fileName, result.encoderName)
+                    }
                     state = state.copy(
                         isBurning = false,
                         burnProgress = 1f,
-                        burnMessage = "Salvato ${result.output.fileName} con ${result.encoderName}$fallback",
+                        burnMessage = saved,
                         burnError = null,
                     )
                 }
             } catch (cancelled: CancellationException) {
                 SwingUtilities.invokeLater {
                     if (generation != burnGeneration) return@invokeLater
-                    state = state.copy(isBurning = false, burnMessage = "Export annullato", burnError = null)
+                    state = state.copy(isBurning = false, burnMessage = uiText(Res.string.burn_cancelled), burnError = null)
                 }
             } catch (failure: Exception) {
                 logger.error(failure) { "Burn failed" }
@@ -308,7 +321,7 @@ class AppStateHolder(
                     if (generation != burnGeneration) return@invokeLater
                     state = state.copy(
                         isBurning = false,
-                        burnError = failure.message ?: "Export non riuscito",
+                        burnError = failure.message ?: uiText(Res.string.burn_failed),
                         burnMessage = null,
                     )
                 }
@@ -319,7 +332,7 @@ class AppStateHolder(
     fun cancelBurn() {
         burnGeneration += 1
         burnJob?.cancel()
-        state = state.copy(isBurning = false, burnMessage = "Export annullato", burnError = null)
+        state = state.copy(isBurning = false, burnMessage = uiText(Res.string.burn_cancelled), burnError = null)
     }
 
     private fun videoBurner(codec: VideoCodec): VideoBurner =
