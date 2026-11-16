@@ -11,7 +11,7 @@ enum class VideoCodec(val label: String) {
 data class BurnSettings(
     val codec: VideoCodec,
     val bitrateMbps: Int,
-    val preferHardware: Boolean,
+    val encoder: BurnEncoderPreference,
     val offsetX: Int,
     val offsetY: Int,
     val adjustPlaybackSpeed: Boolean,
@@ -25,6 +25,7 @@ data class BurnResult(
     val hardware: Boolean,
     val framesWritten: Int,
     val usedSoftwareFallback: Boolean,
+    val fallbackDetail: String? = null,
 )
 
 fun outputNameFor(input: Path): String = "${input.nameWithoutExtension}_with_osd.mp4"

@@ -87,7 +87,7 @@ class VideoBurnTest {
             videoInfo,
             OsdParser().parse(writeOsd(directory.resolve("clip.osd"))),
             magentaFont(),
-            BurnSettings(VideoCodec.H264, bitrateMbps = 4, preferHardware = false, offsetX = 0, offsetY = 0, adjustPlaybackSpeed = false),
+            BurnSettings(VideoCodec.H264, bitrateMbps = 4, encoder = BurnEncoderPreference.Software, offsetX = 0, offsetY = 0, adjustPlaybackSpeed = false),
         )
         assertEquals("libopenh264", result.encoderName)
         assertTrue(output.exists())
@@ -111,7 +111,7 @@ class VideoBurnTest {
         val settings = BurnSettings(
             codec = VideoCodec.H264,
             bitrateMbps = 8,
-            preferHardware = false,
+            encoder = BurnEncoderPreference.Software,
             offsetX = 20,
             offsetY = 8,
             adjustPlaybackSpeed = true,
@@ -168,7 +168,7 @@ class VideoBurnTest {
             videoInfo,
             osd,
             magentaFont(),
-            BurnSettings(VideoCodec.H265, bitrateMbps = 4, preferHardware = false, offsetX = 0, offsetY = 0, adjustPlaybackSpeed = false),
+            BurnSettings(VideoCodec.H265, bitrateMbps = 4, encoder = BurnEncoderPreference.Software, offsetX = 0, offsetY = 0, adjustPlaybackSpeed = false),
         )
         assertEquals("libx265", result.encoderName)
 
@@ -202,7 +202,7 @@ class VideoBurnTest {
                 videoInfo,
                 OsdParser().parse(writeOsd(directory.resolve("clip.osd"))),
                 magentaFont(),
-                BurnSettings(VideoCodec.H264, 4, preferHardware = false, 0, 0, adjustPlaybackSpeed = false),
+                BurnSettings(VideoCodec.H264, 4, BurnEncoderPreference.Software, 0, 0, adjustPlaybackSpeed = false),
                 onProgress = { framesReported += 1 },
                 isCancelled = { framesReported > 0 },
             )
@@ -243,7 +243,7 @@ class VideoBurnTest {
             videoInfo,
             OsdParser().parse(writeOsd(directory.resolve("clip.osd"))),
             magentaFont(),
-            BurnSettings(VideoCodec.H264, bitrateMbps = 8, preferHardware = false, offsetX = 0, offsetY = 0, adjustPlaybackSpeed = false),
+            BurnSettings(VideoCodec.H264, bitrateMbps = 8, encoder = BurnEncoderPreference.Software, offsetX = 0, offsetY = 0, adjustPlaybackSpeed = false),
             srt = SrtParser().parse(srtPath),
             srtOptions = SrtOptions(
                 xPercent = 4f,

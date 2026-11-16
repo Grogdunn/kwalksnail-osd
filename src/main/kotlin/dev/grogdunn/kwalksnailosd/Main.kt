@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -48,6 +50,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import dev.grogdunn.kwalksnailosd.generated.resources.*
 import dev.grogdunn.kwalksnailosd.osd.osdPlaybackSpeedFactor
+import dev.grogdunn.kwalksnailosd.video.BurnEncoderPreference
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.outputNameFor
 import org.jetbrains.compose.resources.pluralStringResource
@@ -443,17 +446,67 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
         valueRange = 1f..80f,
         enabled = controlsEnabled,
     )
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Checkbox(
-            checked = state.preferHardwareEncoder,
-            onCheckedChange = stateHolder::setPreferHardwareEncoder,
-            enabled = controlsEnabled,
+
+    LaunchedEffect(state.burnCodec, state.videoInfo != null) {
+        if (state.videoInfo != null) stateHolder.refreshBurnEncoders()
+    }
+    EncoderPicker(stateHolder, controlsEnabled)
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EncoderPicker(stateHolder: AppStateHolder, enabled: Boolean) {
+    val state = stateHolder.state
+    Text(stringResource(Res.string.export_encoder), style = MaterialTheme.typography.caption)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        EncoderChoiceButton(
+            label = stringResource(Res.string.export_encoder_auto),
+            selected = state.burnEncoder is BurnEncoderPreference.Auto,
+            enabled = enabled,
+            onClick = { stateHolder.setBurnEncoder(BurnEncoderPreference.Auto) },
         )
-        Text(
-            stringResource(Res.string.export_hardware),
-            style = MaterialTheme.typography.body2,
-            modifier = Modifier.weight(1f)
+        EncoderChoiceButton(
+            label = stringResource(Res.string.export_encoder_software),
+            selected = state.burnEncoder is BurnEncoderPreference.Software,
+            enabled = enabled,
+            onClick = { stateHolder.setBurnEncoder(BurnEncoderPreference.Software) },
         )
+        state.burnHardwareOptions.forEach { kind ->
+            EncoderChoiceButton(
+                label = stringResource(kind.labelResource()),
+                selected = (state.burnEncoder as? BurnEncoderPreference.Hardware)?.kind == kind,
+                enabled = enabled,
+                onClick = { stateHolder.setBurnEncoder(BurnEncoderPreference.Hardware(kind)) },
+            )
+        }
+    }
+    Text(
+        text = stringResource(Res.string.export_encoder_hint),
+        style = MaterialTheme.typography.caption,
+        color = Color.Gray,
+    )
+    if (state.burnHardwareProbePending) {
+        Text(stringResource(Res.string.export_encoder_probing), style = MaterialTheme.typography.caption, color = Color.Gray)
+    } else {
+        state.burnHardwareNote?.let { note ->
+            Text(note, style = MaterialTheme.typography.caption, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+private fun EncoderChoiceButton(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        colors = ButtonDefaults.outlinedButtonColors(
+            backgroundColor = if (selected) MaterialTheme.colors.primary.copy(alpha = 0.2f) else Color.Transparent,
+        ),
+    ) {
+        Text(label, fontSize = 12.sp)
     }
 }
 

@@ -27,13 +27,25 @@ English is the fallback when the system language is not one of those five.
 
 **Burn** reads the MP4, draws the OSD on each frame at the `.osd` timestamp, and writes `{name}_with_osd.mp4`. Audio is copied when the source has any.
 
-Choose H.264 or H.265 and a bitrate from 1 to 80 Mbps. If a hardware encoder answers a short probe, the app uses it. If the probe or the encode fails, the app retries with a software encoder and names the encoder that wrote the file. A progress bar and **Cancel** stay on screen, and the window does not freeze. The button label follows the system language.
+Choose H.264 or H.265 and a bitrate from 1 to 80 Mbps. **Encoder** offers Automatic, Software, or one hardware encoder that has already encoded a short test clip on this machine. Automatic uses the first hardware encoder that passes that test, and otherwise the software encoder. The test result is cached until the app exits. If the chosen hardware encoder fails while opening or while writing the file, Burn retries with the software encoder, writes that in the window, and logs it. A progress bar and **Cancel** stay on screen, and the window does not freeze. The labels follow the system language.
+
+Only encoders compiled into the ffmpeg Burn actually runs are offered, and only after the test encode succeeds. A name in `ffmpeg -encoders` is not enough: a missing driver or a missing GPU drops the encoder.
+
+The packaged JavaCV build is `org.bytedeco:ffmpeg:8.1.2-1.5.14` without the `gpl` classifier. Checked against the published jars:
+
+- Linux x86_64, by running the binary: NVIDIA NVENC (`h264_nvenc`, `hevc_nvenc`), VAAPI (`h264_vaapi`, `hevc_vaapi`, libva is in the jar), and Intel QSV (`h264_qsv`, `hevc_qsv`). QSV loads Intel's `libmfxhw64.so.1` at runtime, which the jar does not ship. VAAPI needs a render node such as `/dev/dri/renderD128` and uploads frames with `format=nv12,hwupload`. NVENC needs the NVIDIA driver (`libcuda.so.1` and `libnvidia-encode.so.1`) and takes `nv12`.
+- Windows x86_64, from the strings in `avcodec-62.dll`: NVENC and QSV. No VAAPI and no VideoToolbox.
+- macOS arm64, from the strings in `libavcodec.62.dylib`: Apple VideoToolbox (`h264_videotoolbox`, `hevc_videotoolbox`). No NVENC, QSV, or VAAPI.
+
+AMD AMF (`h264_amf`, `hevc_amf`) is not in any of those JavaCV builds, and it is not in Ubuntu's ffmpeg either. Burn still knows the AMF command line, but the button appears only when the ffmpeg selected for that codec lists the encoder and the test encode works. That is a third-party ffmpeg on `PATH` which also has `libx264` or `libx265`, because that binary is preferred to the JavaCV one. On Linux, AMD and Intel GPUs go through VAAPI, not AMF. The Linux JavaCV build also contains V4L2 mem2mem and Vulkan encoders; Burn does not offer them.
+
+Hardware bitrate follows the slider. NVENC uses VBR with that bitrate as the cap, preset `p4`, and tune `hq`. VAAPI uses VBR. QSV and VideoToolbox use the bitrate directly (VideoToolbox with constant bitrate and hardware only, `-allow_sw 0`). AMF, when present, uses peak-constrained VBR. H.264 hardware asks for the High profile. HEVC hardware tags the file `hvc1`. Software stays `yuv420p` with the same bitrate flag as before.
 
 Offset X and Y move the OSD in pixels. **Center** frames the glyphs of the current preview frame. With playback correction on, for Walksnail firmware up to 32.37.10, OSD timestamps are scaled by `video duration / OSD duration`.
 
 The encoder is the `ffmpeg` binary from the JavaCV native libraries, the same binary the app images ship. If that binary does not start, the app uses `ffmpeg` on `PATH`. If neither runs, Burn says how to fix it.
 
-For H.264 the app prefers `libx264` when the chosen binary has it, and otherwise uses `libopenh264` from the JavaCV build. OpenH264 follows the requested bitrate less closely. H.265 needs `libx265`.
+For H.264 the app prefers `libx264` when the chosen binary has it, and otherwise uses `libopenh264` from the JavaCV build. OpenH264 follows the requested bitrate less closely. H.265 needs `libx265`. The hardware encoders above are probed on that same binary. If H.264 is written by the JavaCV binary and H.265 by an ffmpeg on `PATH`, each one is probed on its own.
 
 ## SRT overlay
 
