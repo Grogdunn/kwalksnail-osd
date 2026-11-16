@@ -1,5 +1,8 @@
 package dev.grogdunn.kwalksnailosd.osd.font
 
+import dev.grogdunn.kwalksnailosd.generated.resources.Res
+import dev.grogdunn.kwalksnailosd.generated.resources.error_font_decode
+import dev.grogdunn.kwalksnailosd.uiText
 import java.awt.image.BufferedImage
 import java.nio.file.Path
 import javax.imageio.ImageIO
@@ -7,7 +10,7 @@ import javax.imageio.ImageIO
 class FontParser {
     fun parse(selectedFont: Path): Font {
         val fontImage = ImageIO.read(selectedFont.toFile())
-            ?: throw IllegalArgumentException("Failed to decode image from path: $selectedFont")
+            ?: throw IllegalArgumentException(uiText(Res.string.error_font_decode, selectedFont))
 
         val (characterSize, fontType, characterCount) = detectDimensions(fontImage.width, fontImage.height)
         val characters = splitCharacters(fontImage, characterSize, fontType, characterCount)

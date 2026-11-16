@@ -1,5 +1,10 @@
 package dev.grogdunn.kwalksnailosd.osd
 
+import dev.grogdunn.kwalksnailosd.generated.resources.Res
+import dev.grogdunn.kwalksnailosd.generated.resources.error_osd_frame
+import dev.grogdunn.kwalksnailosd.generated.resources.error_osd_frame_length
+import dev.grogdunn.kwalksnailosd.generated.resources.error_osd_header
+import dev.grogdunn.kwalksnailosd.uiText
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
@@ -20,7 +25,7 @@ class OsdParser {
         Files.newInputStream(selectedOsd).use { input ->
             val header = input.readNBytes(HEADER_BYTES)
             if (header.size != HEADER_BYTES) {
-                throw IllegalArgumentException("OSD header is incomplete: expected $HEADER_BYTES bytes, got ${header.size}")
+                throw IllegalArgumentException(uiText(Res.string.error_osd_header, HEADER_BYTES, header.size))
             }
             val fcBytes = header.take(FC_TYPE_BYTES).toByteArray()
             val fcFirmware = FcFirmware.getFcFirmware(fcBytes)
@@ -29,7 +34,7 @@ class OsdParser {
                 val frameBytes = input.readNBytes(FRAME_BYTES)
                 if (frameBytes.isEmpty()) break
                 if (frameBytes.size != FRAME_BYTES) {
-                    throw IllegalArgumentException("OSD frame is incomplete: expected $FRAME_BYTES bytes, got ${frameBytes.size}")
+                    throw IllegalArgumentException(uiText(Res.string.error_osd_frame, FRAME_BYTES, frameBytes.size))
                 }
                 frames.add(parseFrame(frameBytes))
             }
@@ -42,7 +47,7 @@ class OsdParser {
 
     private fun parseFrame(frameBytes: ByteArray): Frame {
         require(frameBytes.size == FRAME_BYTES) {
-            "OSD frame must be $FRAME_BYTES bytes long, but was ${frameBytes.size}"
+            uiText(Res.string.error_osd_frame_length, FRAME_BYTES, frameBytes.size)
         }
         val buffer = ByteBuffer.wrap(frameBytes).order(ByteOrder.LITTLE_ENDIAN)
         val timestamp = Integer.toUnsignedLong(buffer.int)

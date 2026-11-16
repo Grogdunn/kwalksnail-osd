@@ -22,6 +22,7 @@ val bytedecoPlatform = bytedecoPlatform()
 dependencies {
     testImplementation(kotlin("test"))
     implementation(compose.desktop.currentOs)
+    implementation("org.jetbrains.compose.components:components-resources:1.12.0")
     implementation("org.bytedeco:javacv:1.5.14") {
         exclude(group = "org.bytedeco", module = "openblas")
         exclude(group = "org.bytedeco", module = "opencv")
@@ -44,6 +45,10 @@ dependencies {
 
 kotlin {
     jvmToolchain(25)
+}
+
+compose.resources {
+    packageOfResClass = "dev.grogdunn.kwalksnailosd.generated.resources"
 }
 
 tasks.test {

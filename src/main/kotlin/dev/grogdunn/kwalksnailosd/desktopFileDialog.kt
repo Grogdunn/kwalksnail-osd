@@ -7,10 +7,11 @@ import java.nio.file.Path
 import kotlin.io.path.extension
 
 fun desktopFileDialog(
+    title: String,
     allowedExtensions: List<String> = emptyList(),
     onCloseRequest: (result: Path?) -> Unit
 ) {
-    val fileDialog = FileDialog(null as Frame?, "Seleziona un file", FileDialog.LOAD).apply {
+    val fileDialog = FileDialog(null as Frame?, title, FileDialog.LOAD).apply {
         if (allowedExtensions.isNotEmpty()) {
             filenameFilter = FilenameFilter { _, name -> allowedExtensions.any { name.endsWith(it, ignoreCase = true) } }
         }
@@ -30,9 +31,10 @@ fun desktopFileDialog(
 
 fun desktopSaveDialog(
     suggestedName: String,
+    title: String,
     onCloseRequest: (result: Path?) -> Unit
 ) {
-    val fileDialog = FileDialog(null as Frame?, "Salva video con OSD", FileDialog.SAVE).apply {
+    val fileDialog = FileDialog(null as Frame?, title, FileDialog.SAVE).apply {
         file = suggestedName
         isVisible = true
     }
