@@ -62,6 +62,18 @@
     <string name="export_codec">Códec</string>
     <string name="export_bitrate">Bitrate: %1$d Mbps</string>
     <string name="export_hardware">Codificador por hardware, con respaldo por software</string>
+    <string name="export_encoder">Encoder</string>
+    <string name="export_encoder_auto">Automático</string>
+    <string name="export_encoder_software">Software</string>
+    <string name="export_encoder_nvenc">NVIDIA NVENC</string>
+    <string name="export_encoder_amf">AMD AMF</string>
+    <string name="export_encoder_vaapi">VAAPI</string>
+    <string name="export_encoder_qsv">Intel QSV</string>
+    <string name="export_encoder_videotoolbox">Apple VideoToolbox</string>
+    <string name="export_encoder_probing">Comprobando los codificadores por hardware…</string>
+    <string name="export_encoder_hint">Automático usa el primer codificador por hardware que completa una prueba de codificación. Si no, usa el de software.</string>
+    <string name="export_encoder_none">Ningún codificador por hardware funciona con este ffmpeg. La exportación usa el de software.</string>
+    <string name="export_encoder_unavailable">%1$s no se puede usar. La exportación usa el de software.</string>
     <string name="export_cancel">Cancelar</string>
     <string name="export_burn">Burn</string>
 

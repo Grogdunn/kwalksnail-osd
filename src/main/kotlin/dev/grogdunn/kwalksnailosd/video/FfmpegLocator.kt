@@ -127,6 +127,37 @@ object FfmpegEncoders {
     }
 
     private val cache = mutableMapOf<Pair<String, String>, Boolean>()
+    private val compiledCache = mutableMapOf<String, Set<String>>()
+
+    fun compiledNames(ffmpeg: Path): Set<String> {
+        val key = ffmpeg.toString()
+        synchronized(compiledCache) {
+            compiledCache[key]?.let { return it }
+        }
+        val names = readCompiledNames(ffmpeg)
+        synchronized(compiledCache) { compiledCache[key] = names }
+        return names
+    }
+
+    private fun readCompiledNames(ffmpeg: Path): Set<String> = try {
+        val process = ProcessBuilder(ffmpeg.toString(), "-nostdin", "-hide_banner", "-encoders")
+            .forBundledFfmpeg(ffmpeg)
+            .redirectErrorStream(true)
+            .start()
+        val text = process.inputStream.bufferedReader().use { it.readText() }
+        val finished = process.waitFor(5, TimeUnit.SECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            emptySet()
+        } else if (process.exitValue() == 0) {
+            encoderNamesFromListing(text)
+        } else {
+            emptySet()
+        }
+    } catch (failure: Exception) {
+        recordFailure(failure.message ?: failure.toString())
+        emptySet()
+    }
 
     fun softwareNames(codec: VideoCodec): List<String> = when (codec) {
         VideoCodec.H264 -> listOf("libx264", "libopenh264")
@@ -171,6 +202,18 @@ object FfmpegEncoders {
         return found
     }
 }
+
+fun encoderNamesFromListing(text: String): Set<String> =
+    text.lineSequence().mapNotNull { line ->
+        val parts = line.trim().split(Regex("\\s+"))
+        val flags = parts.getOrNull(0) ?: return@mapNotNull null
+        val name = parts.getOrNull(1) ?: return@mapNotNull null
+        if (flags.length == 6 && flags.all { it == '.' || it.isLetter() } && name.all { it.isLetterOrDigit() || it == '_' }) {
+            name
+        } else {
+            null
+        }
+    }.toSet()
 
 fun softwareEncoderNames(codec: VideoCodec): List<String> = FfmpegEncoders.softwareNames(codec)
 

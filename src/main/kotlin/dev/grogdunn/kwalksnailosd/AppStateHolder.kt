@@ -28,8 +28,12 @@ import dev.grogdunn.kwalksnailosd.srt.SrtOptions
 import dev.grogdunn.kwalksnailosd.srt.SrtOverlay
 import dev.grogdunn.kwalksnailosd.srt.SrtParser
 import dev.grogdunn.kwalksnailosd.srt.srtCueAt
+import dev.grogdunn.kwalksnailosd.generated.resources.export_encoder_none
+import dev.grogdunn.kwalksnailosd.video.BurnEncoderPreference
 import dev.grogdunn.kwalksnailosd.video.BurnSettings
 import dev.grogdunn.kwalksnailosd.video.FfmpegLocator
+import dev.grogdunn.kwalksnailosd.video.HardwareEncoderCatalog
+import dev.grogdunn.kwalksnailosd.video.HardwareKind
 import dev.grogdunn.kwalksnailosd.video.VideoBurner
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
@@ -69,7 +73,10 @@ data class AppUiState(
     val adjustOsdPlaybackSpeed: Boolean = true,
     val burnCodec: VideoCodec = VideoCodec.H264,
     val burnBitrateMbps: Int = 40,
-    val preferHardwareEncoder: Boolean = true,
+    val burnEncoder: BurnEncoderPreference = BurnEncoderPreference.Auto,
+    val burnHardwareOptions: List<HardwareKind> = emptyList(),
+    val burnHardwareProbePending: Boolean = false,
+    val burnHardwareNote: String? = null,
     val isBurning: Boolean = false,
     val burnProgress: Float = 0f,
     val burnMessage: String? = null,
@@ -91,6 +98,7 @@ class AppStateHolder(
     private val osdRenderer = OsdRenderer()
     private var burnJob: Job? = null
     private var burnGeneration = 0
+    private var encoderProbeGeneration = 0
     private val videoBurners = mutableMapOf<VideoCodec, VideoBurner>()
 
     var state by mutableStateOf(AppUiState())
@@ -242,8 +250,42 @@ class AppStateHolder(
         state = state.copy(burnBitrateMbps = bitrate.coerceIn(1, 80))
     }
 
-    fun setPreferHardwareEncoder(enabled: Boolean) {
-        state = state.copy(preferHardwareEncoder = enabled)
+    fun setBurnEncoder(preference: BurnEncoderPreference) {
+        state = state.copy(burnEncoder = preference)
+    }
+
+    fun refreshBurnEncoders() {
+        val codec = state.burnCodec
+        val generation = ++encoderProbeGeneration
+        state = state.copy(burnHardwareProbePending = true, burnHardwareOptions = emptyList(), burnHardwareNote = null)
+        scope.launch {
+            val probed = withContext(Dispatchers.IO) {
+                runCatching {
+                    val ffmpeg = FfmpegLocator().locateFor(codec)
+                    HardwareEncoderCatalog(ffmpeg).working(codec).mapNotNull { it.kind }
+                }
+            }
+            SwingUtilities.invokeLater {
+                if (generation != encoderProbeGeneration || state.burnCodec != codec) return@invokeLater
+                val options = probed.getOrElse { emptyList() }
+                val kept = when (val preference = state.burnEncoder) {
+                    is BurnEncoderPreference.Hardware ->
+                        if (preference.kind in options) preference else BurnEncoderPreference.Auto
+                    else -> preference
+                }
+                val note = when {
+                    probed.isFailure -> probed.exceptionOrNull()?.message
+                    options.isEmpty() -> uiText(Res.string.export_encoder_none)
+                    else -> null
+                }
+                state = state.copy(
+                    burnEncoder = kept,
+                    burnHardwareOptions = options,
+                    burnHardwareProbePending = false,
+                    burnHardwareNote = note,
+                )
+            }
+        }
     }
 
     fun setSrtOptions(options: SrtOptions) {
@@ -270,7 +312,7 @@ class AppStateHolder(
         val settings = BurnSettings(
             codec = state.burnCodec,
             bitrateMbps = state.burnBitrateMbps,
-            preferHardware = state.preferHardwareEncoder,
+            encoder = state.burnEncoder,
             offsetX = state.osdOffsetX,
             offsetY = state.osdOffsetY,
             adjustPlaybackSpeed = state.adjustOsdPlaybackSpeed,

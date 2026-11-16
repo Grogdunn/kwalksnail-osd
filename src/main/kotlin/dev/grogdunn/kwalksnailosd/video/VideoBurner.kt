@@ -4,7 +4,6 @@ import dev.grogdunn.kwalksnailosd.generated.resources.Res
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_bad_bitrate
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_bad_frame_rate
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_bad_resolution
-import dev.grogdunn.kwalksnailosd.generated.resources.burn_both_encoders_failed
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_encoder_stopped
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_ffmpeg_no_frames
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_ffmpeg_short_frame
@@ -50,7 +49,7 @@ class VideoBurner(
     private val osdRenderer: OsdRenderer = OsdRenderer(),
 ) {
     private val logger = KotlinLogging.logger {}
-    private val probeResults = mutableMapOf<String, Boolean>()
+    private val catalog = HardwareEncoderCatalog(ffmpeg)
 
     fun burn(
         input: Path,
@@ -66,45 +65,42 @@ class VideoBurner(
     ): BurnResult {
         validate(input, output, videoInfo, osd, settings)
         val speedFactor = osdPlaybackSpeedFactor(videoInfo.duration, osd.duration, settings.adjustPlaybackSpeed)
-        val choice = selectEncoder(settings)
-        val softwareBecauseHardwareIsMissing = settings.preferHardware && !choice.hardware
-        logger.info { "Burn with ${choice.name} (hardware=${choice.hardware}), OSD factor $speedFactor, ffmpeg=$ffmpeg" }
+        val selection = catalog.resolve(settings.codec, settings.encoder)
+        val initialNote = selection.fallbackNote
+        var fallbackDetail = initialNote
+        if (initialNote != null) {
+            logger.info { initialNote }
+            onProgress(BurnProgress(0f, initialNote))
+        }
+        logger.info {
+            "Burn with ${selection.chosen.name} (hardware=${selection.chosen.hardware}), OSD factor $speedFactor, ffmpeg=$ffmpeg"
+        }
         return try {
-            encode(
-                input, output, videoInfo, osd, font, settings, choice, speedFactor,
-                usedSoftwareFallback = softwareBecauseHardwareIsMissing,
-                onProgress, isCancelled, srt, srtOptions,
+            val result = encodeWithFallback(
+                primary = selection.chosen,
+                fallback = selection.softwareFallback,
+                encode = { recipe ->
+                    encode(
+                        input, output, videoInfo, osd, font, settings, recipe, speedFactor,
+                        usedSoftwareFallback = fallbackDetail != null,
+                        onProgress, isCancelled, srt, srtOptions,
+                    )
+                },
+                onFallback = { failed, next, error ->
+                    deleteQuietly(output)
+                    val message = uiText(Res.string.burn_hardware_unusable, failed.name, next.name)
+                    fallbackDetail = message
+                    logger.warn(error) { message }
+                    onProgress(BurnProgress(0f, message))
+                },
             )
+            result.copy(usedSoftwareFallback = fallbackDetail != null, fallbackDetail = fallbackDetail)
         } catch (cancelled: CancellationException) {
             deleteQuietly(output)
             throw cancelled
         } catch (failure: Exception) {
             deleteQuietly(output)
-            if (!choice.hardware) throw failure
-            val software = softwareEncoder(settings.codec)
-            logger.warn(failure) { "Encoder ${choice.name} unusable, falling back to ${software.name}" }
-            onProgress(BurnProgress(0f, uiText(Res.string.burn_hardware_unusable, choice.name, software.name)))
-            try {
-                encode(
-                    input, output, videoInfo, osd, font, settings, software, speedFactor,
-                    usedSoftwareFallback = true, onProgress, isCancelled, srt, srtOptions,
-                )
-            } catch (cancelled: CancellationException) {
-                deleteQuietly(output)
-                throw cancelled
-            } catch (softwareFailure: Exception) {
-                deleteQuietly(output)
-                throw VideoBurnException(
-                    uiText(
-                        Res.string.burn_both_encoders_failed,
-                        choice.name,
-                        failure.message ?: uiText(Res.string.burn_no_ffmpeg_detail),
-                        software.name,
-                        softwareFailure.message ?: uiText(Res.string.burn_no_ffmpeg_detail),
-                    ),
-                    softwareFailure,
-                )
-            }
+            throw failure
         }
     }
 
@@ -115,7 +111,7 @@ class VideoBurner(
         osd: Osd,
         font: Font,
         settings: BurnSettings,
-        encoder: EncoderChoice,
+        encoder: EncoderRecipe,
         speedFactor: Double,
         usedSoftwareFallback: Boolean,
         onProgress: (BurnProgress) -> Unit,
@@ -239,7 +235,7 @@ class VideoBurner(
         input: Path,
         output: Path,
         videoInfo: VideoInfo,
-        encoder: EncoderChoice,
+        encoder: EncoderRecipe,
         bitrateMbps: Int,
         copyAudio: Boolean,
     ): Process {
@@ -250,6 +246,9 @@ class VideoBurner(
             "-hide_banner",
             "-loglevel",
             "error",
+        )
+        command += encoder.globalArgs
+        command += listOf(
             "-f",
             "rawvideo",
             "-pix_fmt",
@@ -268,74 +267,9 @@ class VideoBurner(
         if (copyAudio) {
             command += listOf("-map", "1:a:0", "-c:a", "copy")
         }
-        command += listOf(
-            "-c:v",
-            encoder.name,
-            "-b:v",
-            "${bitrateMbps}M",
-            "-pix_fmt",
-            "yuv420p",
-        )
-        command += encoder.extraArgs
+        command += encoderOutputArgs(encoder, bitrateMbps, includeFileArgs = true)
         command += output.toString()
         return startProcess(command)
-    }
-
-    private fun softwareEncoder(codec: VideoCodec): EncoderChoice {
-        val name = FfmpegEncoders.firstSoftware(ffmpeg, codec)
-            ?: throw VideoBurnException(noSoftwareEncoderMessage(codec))
-        return EncoderChoice(name, hardware = false)
-    }
-
-    private fun selectEncoder(settings: BurnSettings): EncoderChoice {
-        val software = softwareEncoder(settings.codec)
-        if (!settings.preferHardware) return software
-        for (candidate in hardwareEncoders(settings.codec)) {
-            if (probe(candidate)) return candidate
-        }
-        return software
-    }
-
-    private fun probe(encoder: EncoderChoice): Boolean {
-        probeResults[encoder.name]?.let { return it }
-        val command = mutableListOf(
-            ffmpeg.toString(),
-            "-nostdin",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-f",
-            "lavfi",
-            "-i",
-            "nullsrc=s=64x64:d=0.1",
-            "-frames:v",
-            "1",
-            "-c:v",
-            encoder.name,
-            "-f",
-            "null",
-            "-",
-        )
-        val works = try {
-            val process = startProcess(command)
-            discardStdout(process)
-            val errors = collectStderr(process)
-            val finished = process.waitFor(4, TimeUnit.SECONDS)
-            if (!finished) {
-                destroyQuietly(process)
-                false
-            } else if (process.exitValue() == 0) {
-                true
-            } else {
-                logger.info { "Encoder ${encoder.name} unavailable: ${tail(errors)}" }
-                false
-            }
-        } catch (failure: Exception) {
-            logger.info(failure) { "Probe of ${encoder.name} failed" }
-            false
-        }
-        probeResults[encoder.name] = works
-        return works
     }
 
     private fun startProcess(command: List<String>): Process =
@@ -412,7 +346,7 @@ class VideoBurner(
         if (isCancelled()) throw CancellationException("Burn cancelled")
     }
 
-    private fun encoderFailureMessage(encoder: EncoderChoice, errors: StringBuilder, extra: String? = null): String {
+    private fun encoderFailureMessage(encoder: EncoderRecipe, errors: StringBuilder, extra: String? = null): String {
         val detail = tail(errors).ifBlank { extra ?: uiText(Res.string.burn_no_ffmpeg_detail) }
         return uiText(Res.string.burn_encoder_stopped, encoder.name, detail)
     }
@@ -449,32 +383,4 @@ class VideoBurner(
         }
     }
 
-    private data class EncoderChoice(val name: String, val hardware: Boolean, val extraArgs: List<String> = emptyList())
-
-    companion object {
-        private fun hardwareEncoders(codec: VideoCodec): List<EncoderChoice> {
-            val os = System.getProperty("os.name").orEmpty().lowercase()
-            val h264 = codec == VideoCodec.H264
-            return when {
-                os.contains("win") -> listOf(
-                    EncoderChoice(if (h264) "h264_amf" else "hevc_amf", hardware = true),
-                    EncoderChoice(if (h264) "h264_nvenc" else "hevc_nvenc", hardware = true),
-                    EncoderChoice(if (h264) "h264_qsv" else "hevc_qsv", hardware = true),
-                )
-                os.contains("mac") -> listOf(
-                    if (h264) {
-                        EncoderChoice("h264_videotoolbox", hardware = true)
-                    } else {
-                        EncoderChoice("hevc_videotoolbox", hardware = true, extraArgs = listOf("-tag:v", "hvc1"))
-                    }
-                )
-                else -> listOf(
-                    EncoderChoice(if (h264) "h264_nvenc" else "hevc_nvenc", hardware = true),
-                    EncoderChoice(if (h264) "h264_qsv" else "hevc_qsv", hardware = true),
-                    EncoderChoice(if (h264) "h264_vaapi" else "hevc_vaapi", hardware = true),
-                    EncoderChoice(if (h264) "h264_v4l2m2m" else "hevc_v4l2m2m", hardware = true),
-                )
-            }
-        }
-    }
 }
