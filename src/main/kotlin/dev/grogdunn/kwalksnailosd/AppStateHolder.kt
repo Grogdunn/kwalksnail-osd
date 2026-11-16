@@ -51,6 +51,7 @@ data class AppUiState(
 
     val selectedFont: Path? = null,
     val font: Font? = null,
+    val fontError: String? = null,
     val videoInfo: VideoInfo? = null,
     val selectedFrame: Float = 0.0f,
     val bitmap: ImageBitmap? = null,
@@ -115,12 +116,25 @@ class AppStateHolder(
     fun onFontFilePickerClosed(path: Path?) {
         if (path == null) return
 
-        state = state.copy(selectedFont = path)
+        state = state.copy(selectedFont = path, font = null, fontError = null)
     }
 
     suspend fun parseSelectedFont() {
-        val font = withContext(Dispatchers.IO) { state.selectedFont?.let { fontParser.parse(it) } }
-        state = state.copy(font = font)
+        val path = state.selectedFont
+        if (path == null) {
+            state = state.copy(font = null, fontError = null)
+            return
+        }
+        state = state.copy(font = null, fontError = null)
+        try {
+            val font = withContext(Dispatchers.IO) { fontParser.parse(path) }
+            state = state.copy(font = font, fontError = null)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger.error(exception) { "Failed to read OSD font $path" }
+            state = state.copy(font = null, fontError = exception.message ?: "Impossibile leggere il font OSD")
+        }
     }
 
     suspend fun parseSelectedMp4() {
