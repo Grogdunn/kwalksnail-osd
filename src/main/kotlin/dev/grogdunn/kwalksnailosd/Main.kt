@@ -203,6 +203,7 @@ private fun LeftSidebarPanel(
         FileSelectorCard(
             title = "Font OSD (.png)",
             fileName = state.selectedFont?.fileName?.toString(),
+            errorMessage = state.fontError,
             onSelectClick = {
                 desktopFileDialog(allowedExtensions = listOf("png"), onCloseRequest = stateHolder::onFontFilePickerClosed)
             }
@@ -744,6 +745,16 @@ private fun StatusBar(
                         Text("Errore OSD: ${state.osdError}", style = MaterialTheme.typography.caption, color = MaterialTheme.colors.error)
                     }
 
+                    state.fontError != null -> {
+                        Text(
+                            "Errore font: ${state.fontError}",
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.error,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
                     state.selectedMp4 != null -> {
                         Text("Video caricato: ${state.selectedMp4.fileName}", style = MaterialTheme.typography.caption)
                     }
@@ -761,11 +772,19 @@ private fun StatusBar(
             ) {
                 val videoStatus = state.videoInfo?.let { "${it.width}x${it.height} @ ${"%.0f".format(it.frameRate)}fps" } ?: "Nessun video"
                 val osdStatus = state.osd?.let { "${it.fcFirmware}" } ?: "Nessun OSD"
-                val fontStatus = if (state.font != null) "Font OK" else "Nessun font"
+                val fontStatus = when {
+                    state.fontError != null -> "Errore font"
+                    state.font != null -> "Font OK"
+                    else -> "Nessun font"
+                }
 
                 Text("Video: $videoStatus", style = MaterialTheme.typography.caption, color = Color.Gray)
                 Text("OSD: $osdStatus", style = MaterialTheme.typography.caption, color = Color.Gray)
-                Text("Font: $fontStatus", style = MaterialTheme.typography.caption, color = Color.Gray)
+                Text(
+                    "Font: $fontStatus",
+                    style = MaterialTheme.typography.caption,
+                    color = if (state.fontError != null) MaterialTheme.colors.error else Color.Gray
+                )
                 Text("Frame: ${state.selectedFrame.roundToInt()}", style = MaterialTheme.typography.caption, fontWeight = FontWeight.Bold)
             }
         }
