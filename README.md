@@ -1,5 +1,7 @@
 # Walksnail OSD
 
+[![CI](https://github.com/Grogdunn/kwalksnail-osd/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Grogdunn/kwalksnail-osd/actions/workflows/ci.yml) [![Release](https://github.com/Grogdunn/kwalksnail-osd/actions/workflows/release.yml/badge.svg)](https://github.com/Grogdunn/kwalksnail-osd/actions/workflows/release.yml) [![Latest release](https://img.shields.io/github/v/release/Grogdunn/kwalksnail-osd)](https://github.com/Grogdunn/kwalksnail-osd/releases/latest) [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE) [![GitHub Sponsors](https://img.shields.io/github/sponsors/Grogdunn)](https://github.com/sponsors/Grogdunn) [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/Grogdunn)
+
 Walksnail OSD is a desktop app that draws the flight-controller OSD from a Walksnail Avatar DVR onto the recorded video.
 
 It replaces [Walksnail OSD Tool](https://github.com/avsaase/walksnail-osd-tool) by Alexander van Saase and the other authors of that project. The last release is [v0.3.0](https://github.com/avsaase/walksnail-osd-tool/releases/tag/v0.3.0) (23 March 2024), and the project is no longer maintained. This app reads the same DVR files. The OSD format, the PNG font atlas, and the placement of glyphs on a frame follow that tool, and both projects are licensed under the GNU GPL version 3. See [Credits](#credits) and [NOTICE](NOTICE).
@@ -144,7 +146,3 @@ Walksnail OSD Tool is copyright its authors. The package metadata names [Alexand
 Copyright (C) 2026 [Lorenzo Caenazzo](https://github.com/Grogdunn) for this repository, including the desktop UI, the video reader, and the packaging.
 
 No font files, icons, or other media from Walksnail OSD Tool are included here.
-
-## Repository tooling
-
-pstack is included unchanged in `.cursor/skills/pstack/` (upstream 0.15.36, commit `bb68f2365eceafa0cb2d253112f675acf5f144cc`). Model roles are pinned to Grok in `.cursor/rules/pstack-models.mdc`. To update pstack, replace that folder with an intact copy of upstream. pstack stays under the MIT license in `.cursor/skills/pstack/LICENSE`. It is developer tooling, and it is separate from the desktop app. See [NOTICE](NOTICE).
