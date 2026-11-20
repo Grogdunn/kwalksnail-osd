@@ -9,7 +9,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -58,12 +57,30 @@ class SrtOverlayTest {
         assertEquals(25.0, file.cues[1].data?.bitrateMbps)
         assertEquals(16.7, file.cues[1].data?.skyBatteryVolts)
         assertEquals(1, file.cues[1].data?.distanceMeters)
-        assertNull(file.cues[2].data)
+        assertEquals(
+            SrtData(
+                signal = null,
+                channel = 1,
+                flightTimeSeconds = null,
+                skyBatteryVolts = null,
+                groundBatteryVolts = null,
+                latencyMillis = 31,
+                bitrateMbps = null,
+                distanceMeters = null,
+                mcs = 4,
+                groundSnr = 25.9,
+                skySnr = 17.8,
+                groundTempC = 50,
+                skyTempC = 82,
+            ),
+            file.cues[2].data,
+        )
+        assertTrue(file.hasDebugFields)
 
         assertEquals(file.cues[0], srtCueAt(file.cues, 0.0))
         assertEquals(file.cues[0], srtCueAt(file.cues, 1000.0))
         assertEquals(file.cues[1], srtCueAt(file.cues, 1001.0))
-        assertNull(srtCueAt(file.cues, 2001.0)?.data)
+        assertEquals(file.cues[2].data, srtCueAt(file.cues, 2001.0)?.data)
         Files.deleteIfExists(path)
     }
 

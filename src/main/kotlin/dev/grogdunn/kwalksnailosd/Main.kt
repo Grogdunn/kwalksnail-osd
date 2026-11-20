@@ -316,6 +316,7 @@ private fun SrtOverlayOptions(stateHolder: AppStateHolder) {
     val options = state.srtOptions
     val enabled = !state.isBurning && state.srt != null
     val distanceEnabled = enabled && state.srt.hasDistance
+    val debugEnabled = enabled && state.srt.hasDebugFields
 
     Text(stringResource(Res.string.srt_title), style = MaterialTheme.typography.subtitle2, fontWeight = FontWeight.Bold)
     Text(
@@ -361,6 +362,15 @@ private fun SrtOverlayOptions(stateHolder: AppStateHolder) {
     SrtFieldCheckbox(stringResource(Res.string.srt_field_bitrate), options.showBitrate, enabled) { stateHolder.setSrtOptions(options.copy(showBitrate = it)) }
     SrtFieldCheckbox(stringResource(Res.string.srt_field_distance), options.showDistance, distanceEnabled) {
         stateHolder.setSrtOptions(options.copy(showDistance = it))
+    }
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_mcs), options.showMcs, debugEnabled) {
+        stateHolder.setSrtOptions(options.copy(showMcs = it))
+    }
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_snr), options.showSnr, debugEnabled) {
+        stateHolder.setSrtOptions(options.copy(showSnr = it))
+    }
+    SrtFieldCheckbox(stringResource(Res.string.srt_field_temp), options.showTemp, debugEnabled) {
+        stateHolder.setSrtOptions(options.copy(showTemp = it))
     }
 }
 

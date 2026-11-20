@@ -15,8 +15,8 @@ Tick the boxes as each part lands.
 
 Upstream: [avsaase/walksnail-osd-tool](https://github.com/avsaase/walksnail-osd-tool) issues #62, #65 and #71. A sample zip is attached to #71.
 
-- [ ] Parse the formats from #62, #65 and #71 (use the #71 samples as test fixtures).
-- [ ] Keep the existing SRT format working (regression tests).
+- [x] Parse the formats from #62, #65 and #71 (use the #71 samples as test fixtures).
+- [x] Keep the existing SRT format working (regression tests).
 - [ ] Localized error for unknown or unreadable SRT content.
 
 ## 3. Multi-clip burn from a folder

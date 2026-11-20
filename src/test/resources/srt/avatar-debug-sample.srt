@@ -1,0 +1,64 @@
+1
+00:00:00,000 --> 00:00:00,150
+CH:8 MCS:4 SP[ 41 151  45 151] GP[ 50  53  52  48] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:19.7 SSNR:15.3 Gtemp:50 Stemp:55 Delay:36ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-88,-87,-89,-86,-85,-87,-89,-85]
+
+2
+00:00:00,150 --> 00:00:00,300
+CH:8 MCS:4 SP[ 41 151  46 151] GP[ 48  54  58  50] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:19.5 SSNR:15.1 Gtemp:50 Stemp:55 Delay:37ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-88,-88,-89,-86,-85,-87,-88,-86]
+
+3
+00:00:00,300 --> 00:00:00,449
+CH:8 MCS:4 SP[ 41 151  47 151] GP[ 48  54  60  52] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:19.3 SSNR:14.4 Gtemp:50 Stemp:55 Delay:37ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-87,-88,-89,-86,-84,-87,-89,-86]
+
+4
+00:00:00,449 --> 00:00:00,600
+CH:8 MCS:4 SP[ 41 151  50 151] GP[ 49  53  59  55] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:19.3 SSNR:14.8 Gtemp:50 Stemp:55 Delay:37ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-87,-88,-89,-86,-84,-87,-88,-86]
+
+5
+00:00:00,600 --> 00:00:00,750
+CH:8 MCS:4 SP[ 41 151  50 151] GP[ 51  54  58  58] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:20.0 SSNR:14.8 Gtemp:50 Stemp:55 Delay:37ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-86,-87,-89,-86,-84,-87,-88,-86]
+
+6
+00:00:00,750 --> 00:00:00,899
+CH:8 MCS:4 SP[ 44 151  50 151] GP[ 50  55  54  61] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:19.2 SSNR:14.6 Gtemp:50 Stemp:55 Delay:36ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-86,-87,-89,-86,-86,-87,-88,-86]
+
+7
+00:00:00,899 --> 00:00:01,050
+CH:8 MCS:4 SP[ 44 151  50 151] GP[ 49  56  53  60] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:19.3 SSNR:14.6 Gtemp:50 Stemp:55 Delay:37ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-87,-88,-89,-86,-85,-87,-89,-85]
+
+8
+00:00:01,050 --> 00:00:01,200
+CH:8 MCS:4 SP[ 39 151  46 151] GP[ 46  58  49  56] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:19.3 SSNR:13.5 Gtemp:50 Stemp:55 Delay:37ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-88,-87,-89,-86,-85,-86,-89,-85]
+
+9
+00:00:01,200 --> 00:00:01,350
+CH:8 MCS:4 SP[ 39 151  46 151] GP[ 48  59  49  57] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:19.5 SSNR:13.5 Gtemp:50 Stemp:55 Delay:36ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-87,-88,-89,-86,-85,-87,-89,-84]
+
+10
+00:00:01,350 --> 00:00:01,500
+CH:8 MCS:4 SP[ 39 151  47 151] GP[ 47  59  50  58] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:19.0 SSNR:14.5 Gtemp:50 Stemp:55 Delay:36ms Frame:60  Gerr:0 SErr:0 24, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-87,-87,-89,-86,-84,-86,-89,-85]
+
+11
+00:00:01,500 --> 00:00:01,649
+CH:8 MCS:4 SP[ 39 151  46 151] GP[ 50  52  57  57] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:20.0 SSNR:14.9 Gtemp:50 Stemp:55 Delay:36ms Frame:60  Gerr:0 SErr:0 23, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-86,-87,-89,-86,-84,-86,-89,-85]
+
+12
+00:00:01,649 --> 00:00:01,799
+CH:8 MCS:4 SP[ 43 151  55 151] GP[ 52  52  57  60] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:20.4 SSNR:14.5 Gtemp:50 Stemp:55 Delay:36ms Frame:60  Gerr:0 SErr:0 23, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-86,-88,-89,-86,-84,-87,-89,-85]
+
+972
+00:02:25,516 --> 00:02:25,666
+CH:8 MCS:3 SP[101 151  81 151] GP[ 86  86  86  91] GTP:29 GTP0:00 STP:26 STP0:00 GSNR:14.8 SSNR:12.8 Gtemp:55 Stemp:62 Delay:35ms Frame:60  Gerr:0 SErr:0 16, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5380,G=5695, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-85,-89,-89,-86,-86,-88,-88,-85]
+
+1629
+00:04:04,033 --> 00:04:04,183
+CH:8 MCS:2 SP[102 151  91 151] GP[ 91  90  91  88] GTP:29 GTP0:00 STP:29 STP0:00 GSNR:12.1 SSNR:11.1 Gtemp:59 Stemp:62 Delay:31ms Frame:60  Gerr:0 SErr:0 13, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5878, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-87,-88,-89,-87,-87,-90,-89,-87]
+
+1630
+00:04:04,183 --> 00:04:04,333
+CH:8 MCS:2 SP[102 151  91 151] GP[ 92  90  93  87] GTP:29 GTP0:00 STP:29 STP0:00 GSNR:12.9 SSNR:11.1 Gtemp:59 Stemp:62 Delay:37ms Frame:60  Gerr:0 SErr:0 11, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5878, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-87,-89,-90,-87,-87,-90,-89,-87]
+
+2011
+00:05:00,966 --> 00:05:01,116
+CH:8 MCS:0 SP[ 93 151  97 151] GP[ 91  93  96  88] GTP:29 GTP0:00 STP:29 STP0:00 GSNR:13.5 SSNR:9.9 Gtemp:61 Stemp:63 Delay:64ms Frame:58  Gerr:0 SErr:18  3, [iso:0,mode=max, exp:0] [gain:0.00 exp:0.000ms, Lx:0] [cct:0, rb:0.000 0.000], SKY:[brF:5841.5, slot0F:5839, bestF:S=5340,G=5735, freq:0000,0000,0000,0000,0000,0000,0000,0000, s-avrp:0,0,0,0,0,0,0,0, g-avrp:-87,-89,-90,-87,-87,-89,-89,-85]
+
