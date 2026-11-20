@@ -88,6 +88,7 @@
     <string name="status_export_error">Erreur d'export : %1$s</string>
     <string name="status_parsing_osd">Lecture de l'OSD...</string>
     <string name="status_osd_error">Erreur OSD : %1$s</string>
+    <string name="status_video_error">Erreur vidéo : %1$s</string>
     <string name="status_font_error">Erreur de police : %1$s</string>
     <string name="status_font_error_short">Erreur de police</string>
     <string name="status_video_loaded">Vidéo chargée : %1$s</string>
@@ -133,6 +134,7 @@
     <string name="error_osd_frame_length">L'image OSD doit faire %1$d octets, mais elle en fait %2$d</string>
     <string name="error_fc_bytes">Les octets du flight controller doivent en compter au moins 4</string>
     <string name="error_font_unreadable">Impossible de lire la police OSD</string>
+    <string name="error_video_unreadable">Impossible de lire le fichier vidéo</string>
     <string name="error_font_width">Largeur de police non valide : %1$d</string>
     <string name="error_font_height">Hauteur de police non valide : %1$d</string>
     <string name="error_font_decode">Impossible de décoder l'image : %1$s</string>

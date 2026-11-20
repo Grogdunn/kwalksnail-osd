@@ -88,6 +88,7 @@
     <string name="status_export_error">Export error: %1$s</string>
     <string name="status_parsing_osd">Reading the OSD...</string>
     <string name="status_osd_error">OSD error: %1$s</string>
+    <string name="status_video_error">Video error: %1$s</string>
     <string name="status_font_error">Font error: %1$s</string>
     <string name="status_font_error_short">Font error</string>
     <string name="status_video_loaded">Video loaded: %1$s</string>
@@ -133,6 +134,7 @@
     <string name="error_osd_frame_length">OSD frame must be %1$d bytes long, but was %2$d</string>
     <string name="error_fc_bytes">FC bytes must be at least 4 bytes long</string>
     <string name="error_font_unreadable">Could not read the OSD font</string>
+    <string name="error_video_unreadable">Could not read the video file</string>
     <string name="error_font_width">Invalid font file width: %1$d</string>
     <string name="error_font_height">Invalid font file height: %1$d</string>
     <string name="error_font_decode">Failed to decode image from path: %1$s</string>

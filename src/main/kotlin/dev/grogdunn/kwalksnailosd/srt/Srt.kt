@@ -55,9 +55,20 @@ fun srtLabel(data: SrtData, options: SrtOptions): String = buildString {
     if (options.showDistance) append(distance(data.distanceMeters))
 }
 
+/** Assumes [cues] is sorted by non-decreasing [SrtCue.startMillis]. */
 fun srtCueAt(cues: List<SrtCue>, videoTimeMillis: Double): SrtCue? {
     if (cues.isEmpty()) return null
-    return cues.findLast { it.startMillis < videoTimeMillis } ?: cues.first()
+    var low = 0
+    var high = cues.size
+    while (low < high) {
+        val mid = (low + high) ushr 1
+        if (cues[mid].startMillis < videoTimeMillis) {
+            low = mid + 1
+        } else {
+            high = mid
+        }
+    }
+    return cues[if (low == 0) 0 else low - 1]
 }
 
 private fun volts(value: Double): String = String.format(Locale.US, "%4.1f", value)

@@ -39,6 +39,8 @@ class OsdParser {
                 frames.add(parseFrame(frameBytes))
             }
 
+            // Sorted so osdFrameAt can binary-search. Valid files are already non-decreasing; a malformed file may not be.
+            frames.sortBy { it.timestampMillis }
             val frameIntervalMillis = (frames.last().timestampMillis - frames.first().timestampMillis).toDouble() / (frames.size - 1).toDouble()
             val duration = Duration.ofMillis(frames.last().timestampMillis) + Duration.ofMillis(frameIntervalMillis.toLong())
             return Osd(fcFirmware, frames, duration)
