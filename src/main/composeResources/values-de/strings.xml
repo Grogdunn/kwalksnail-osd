@@ -88,6 +88,7 @@
     <string name="status_export_error">Exportfehler: %1$s</string>
     <string name="status_parsing_osd">OSD wird gelesen...</string>
     <string name="status_osd_error">OSD-Fehler: %1$s</string>
+    <string name="status_video_error">Videofehler: %1$s</string>
     <string name="status_font_error">Schriftfehler: %1$s</string>
     <string name="status_font_error_short">Schriftfehler</string>
     <string name="status_video_loaded">Video geladen: %1$s</string>
@@ -133,6 +134,7 @@
     <string name="error_osd_frame_length">Der OSD-Frame muss %1$d Bytes lang sein, ist aber %2$d</string>
     <string name="error_fc_bytes">Die Bytes des Flight Controllers müssen mindestens 4 lang sein</string>
     <string name="error_font_unreadable">Die OSD-Schrift konnte nicht gelesen werden</string>
+    <string name="error_video_unreadable">Die Videodatei konnte nicht gelesen werden</string>
     <string name="error_font_width">Ungültige Schriftbreite: %1$d</string>
     <string name="error_font_height">Ungültige Schrifthöhe: %1$d</string>
     <string name="error_font_decode">Das Bild konnte nicht dekodiert werden: %1$s</string>

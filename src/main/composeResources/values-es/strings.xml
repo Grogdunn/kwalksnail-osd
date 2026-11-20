@@ -88,6 +88,7 @@
     <string name="status_export_error">Error de exportación: %1$s</string>
     <string name="status_parsing_osd">Leyendo el OSD...</string>
     <string name="status_osd_error">Error de OSD: %1$s</string>
+    <string name="status_video_error">Error de vídeo: %1$s</string>
     <string name="status_font_error">Error de fuente: %1$s</string>
     <string name="status_font_error_short">Error de fuente</string>
     <string name="status_video_loaded">Vídeo cargado: %1$s</string>
@@ -133,6 +134,7 @@
     <string name="error_osd_frame_length">El fotograma OSD debe medir %1$d bytes, pero mide %2$d</string>
     <string name="error_fc_bytes">Los bytes del flight controller deben ser al menos 4</string>
     <string name="error_font_unreadable">No se ha podido leer la fuente OSD</string>
+    <string name="error_video_unreadable">No se ha podido leer el archivo de vídeo</string>
     <string name="error_font_width">Ancho de fuente no válido: %1$d</string>
     <string name="error_font_height">Alto de fuente no válido: %1$d</string>
     <string name="error_font_decode">No se ha podido decodificar la imagen: %1$s</string>

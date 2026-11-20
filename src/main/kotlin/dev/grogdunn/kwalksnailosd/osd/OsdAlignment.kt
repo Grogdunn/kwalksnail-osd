@@ -17,11 +17,12 @@ fun osdPlaybackSpeedFactor(videoDuration: Duration, osdDuration: Duration, adjus
     return videoDuration.toMillis().toDouble() / osdMillis.toDouble()
 }
 
+/** Assumes [frames] is sorted by non-decreasing [Frame.timestampMillis]. */
 fun osdFrameAt(frames: List<Frame>, videoTimeMillis: Double, speedFactor: Double): Frame? {
     if (frames.isEmpty()) return null
     val factor = if (speedFactor <= 0.0) 1.0 else speedFactor
     val scaledVideoTime = videoTimeMillis / factor
-    return frames.findLast { it.timestampMillis < scaledVideoTime } ?: frames.first()
+    return lastStrictlyBefore(frames, scaledVideoTime) { it.timestampMillis }
 }
 
 fun osdHorizontalOffset(videoWidth: Int, frame: Frame, tileWidth: Int): Int =
@@ -29,6 +30,20 @@ fun osdHorizontalOffset(videoWidth: Int, frame: Frame, tileWidth: Int): Int =
 
 fun osdVerticalOffset(videoHeight: Int, frame: Frame, tileHeight: Int): Int =
     osdAxisOffset(videoHeight, frame.glyphs.map { it.position.y }, tileHeight)
+
+private fun <T> lastStrictlyBefore(items: List<T>, time: Double, timestamp: (T) -> Long): T {
+    var low = 0
+    var high = items.size
+    while (low < high) {
+        val mid = (low + high) ushr 1
+        if (timestamp(items[mid]) < time) {
+            low = mid + 1
+        } else {
+            high = mid
+        }
+    }
+    return items[if (low == 0) 0 else low - 1]
+}
 
 private fun osdAxisOffset(videoExtent: Int, gridCoordinates: List<Int>, tileExtent: Int): Int {
     if (gridCoordinates.isEmpty() || tileExtent <= 0) return 0

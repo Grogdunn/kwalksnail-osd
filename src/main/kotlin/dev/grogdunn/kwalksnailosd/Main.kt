@@ -192,6 +192,7 @@ private fun LeftSidebarPanel(
         FileSelectorCard(
             title = stringResource(Res.string.file_video_mp4),
             fileName = state.selectedMp4?.fileName?.toString(),
+            errorMessage = state.videoError,
             onSelectClick = {
                 desktopFileDialog(openVideoTitle, allowedExtensions = listOf("mp4"), onCloseRequest = stateHolder::onFilePickerClosed)
             }
@@ -820,6 +821,16 @@ private fun StatusBar(
                     state.fontError != null -> {
                         Text(
                             stringResource(Res.string.status_font_error, state.fontError),
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.error,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    state.videoError != null -> {
+                        Text(
+                            stringResource(Res.string.status_video_error, state.videoError),
                             style = MaterialTheme.typography.caption,
                             color = MaterialTheme.colors.error,
                             maxLines = 1,

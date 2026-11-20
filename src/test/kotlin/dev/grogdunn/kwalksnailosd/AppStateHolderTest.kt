@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage
 import java.nio.file.Path
 import javax.imageio.ImageIO
 import kotlin.io.path.createTempDirectory
+import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -41,6 +42,40 @@ class AppStateHolderTest {
 
                 assertNull(holder.state.font)
                 assertNotNull(holder.state.fontError)
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun unreadableMp4SetsVideoErrorAndClearsVideoInfo() {
+        runBlocking {
+            val directory = createTempDirectory("video-ui")
+            val holder = AppStateHolder()
+            try {
+                val bad = directory.resolve("notes.mp4")
+                bad.writeText("this is not a video")
+
+                holder.onFilePickerClosed(bad)
+                assertNull(holder.state.videoError)
+                holder.parseSelectedMp4()
+
+                assertEquals(bad, holder.state.selectedMp4)
+                assertNull(holder.state.videoInfo)
+                assertNotNull(holder.state.videoError)
+
+                val other = directory.resolve("other.mp4")
+                other.writeText("still not a video")
+                holder.onFilePickerClosed(other)
+                assertEquals(other, holder.state.selectedMp4)
+                assertNull(holder.state.videoInfo)
+                assertNull(holder.state.videoError)
+
+                holder.parseSelectedMp4()
+                assertNull(holder.state.videoInfo)
+                assertNotNull(holder.state.videoError)
             } finally {
                 holder.close()
                 directory.toFile().deleteRecursively()

@@ -11,6 +11,8 @@ class SrtParser {
         val text = Files.readString(path).removePrefix("\uFEFF").replace("\r\n", "\n").replace('\r', '\n')
         val cues = text.split(Regex("\n\\s*\n"))
             .mapNotNull { parseBlock(it) }
+            // Sorted so srtCueAt can binary-search. Valid files are already non-decreasing; a malformed file may not be.
+            .sortedBy { it.startMillis }
         if (cues.isEmpty()) {
             throw IllegalArgumentException(uiText(Res.string.error_srt_empty))
         }

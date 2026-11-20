@@ -14,6 +14,7 @@ import dev.grogdunn.kwalksnailosd.generated.resources.burn_starting
 import dev.grogdunn.kwalksnailosd.generated.resources.error_font_unreadable
 import dev.grogdunn.kwalksnailosd.generated.resources.error_osd_unreadable
 import dev.grogdunn.kwalksnailosd.generated.resources.error_srt_unreadable
+import dev.grogdunn.kwalksnailosd.generated.resources.error_video_unreadable
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
 import dev.grogdunn.kwalksnailosd.osd.OsdRenderer
@@ -66,6 +67,7 @@ data class AppUiState(
     val font: Font? = null,
     val fontError: String? = null,
     val videoInfo: VideoInfo? = null,
+    val videoError: String? = null,
     val selectedFrame: Float = 0.0f,
     val bitmap: ImageBitmap? = null,
     val osdOffsetX: Int = 0,
@@ -125,6 +127,7 @@ class AppStateHolder(
             isParsingSrt = !srtChanged && state.isParsingSrt,
             srtError = if (srtChanged) null else state.srtError,
             videoInfo = if (mp4Changed) null else state.videoInfo,
+            videoError = if (mp4Changed) null else state.videoError,
             bitmap = if (mp4Changed) null else state.bitmap,
             selectedFrame = if (mp4Changed) 0.0f else state.selectedFrame
         )
@@ -156,15 +159,22 @@ class AppStateHolder(
 
     suspend fun parseSelectedMp4() {
         val mp4 = state.selectedMp4
-        val videoInfo = withContext(Dispatchers.IO) {
-            if (mp4 != null) {
-                videoParser.getVideoInfo(mp4)
-            } else {
-                videoParser.close()
-                null
+        try {
+            val videoInfo = withContext(Dispatchers.IO) {
+                if (mp4 != null) {
+                    videoParser.getVideoInfo(mp4)
+                } else {
+                    videoParser.close()
+                    null
+                }
             }
+            state = state.copy(videoInfo = videoInfo, videoError = null)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger.error(exception) { "Failed to read video $mp4" }
+            state = state.copy(videoInfo = null, videoError = exception.message ?: uiText(Res.string.error_video_unreadable))
         }
-        state = state.copy(videoInfo = videoInfo)
     }
 
     suspend fun parseSelectedSrt() {
@@ -207,12 +217,21 @@ class AppStateHolder(
         val font = state.font ?: return
         val osdFrame = currentOsdFrame(videoInfo, osd, selectedFrame) ?: return
         logger.info { "onFrameSelected: $selectedFrame" }
-        val selectedFrameImage = videoParser.getVideoFrame(mp4, selectedFrame.toInt()) ?: return
+        val selectedFrameImage = try {
+            videoParser.getVideoFrame(mp4, selectedFrame.toInt())
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger.error(exception) { "Failed to read frame ${selectedFrame.toInt()} from $mp4" }
+            state = state.copy(videoError = exception.message ?: uiText(Res.string.error_video_unreadable))
+            return
+        } ?: return
         osdRenderer.renderInPlace(selectedFrameImage, osdFrame, font, state.osdOffsetX, state.osdOffsetY)
         drawSrt(selectedFrameImage, videoInfo, selectedFrame)
         state = state.copy(
             selectedFrame = selectedFrame,
-            bitmap = selectedFrameImage.toComposeImageBitmap()
+            bitmap = selectedFrameImage.toComposeImageBitmap(),
+            videoError = null,
         )
     }
 
