@@ -3,14 +3,19 @@ package dev.grogdunn.kwalksnailosd.srt
 import java.util.Locale
 
 data class SrtData(
-    val signal: Int,
-    val channel: Int,
-    val flightTimeSeconds: Int,
-    val skyBatteryVolts: Double,
-    val groundBatteryVolts: Double,
-    val latencyMillis: Int,
-    val bitrateMbps: Double,
-    val distanceMeters: Int,
+    val signal: Int?,
+    val channel: Int?,
+    val flightTimeSeconds: Int?,
+    val skyBatteryVolts: Double?,
+    val groundBatteryVolts: Double?,
+    val latencyMillis: Int?,
+    val bitrateMbps: Double?,
+    val distanceMeters: Int?,
+    val mcs: Int? = null,
+    val groundSnr: Double? = null,
+    val skySnr: Double? = null,
+    val groundTempC: Int? = null,
+    val skyTempC: Int? = null,
 )
 
 data class SrtCue(
@@ -22,6 +27,7 @@ data class SrtCue(
 data class SrtFile(
     val cues: List<SrtCue>,
     val hasDistance: Boolean,
+    val hasDebugFields: Boolean,
 )
 
 data class SrtOptions(
@@ -35,6 +41,9 @@ data class SrtOptions(
     val showLatency: Boolean = true,
     val showBitrate: Boolean = true,
     val showDistance: Boolean = true,
+    val showMcs: Boolean = false,
+    val showSnr: Boolean = false,
+    val showTemp: Boolean = false,
 )
 
 /**
@@ -43,16 +52,25 @@ data class SrtOptions(
  */
 fun srtLabel(data: SrtData, options: SrtOptions): String = buildString {
     if (options.showTime) {
-        val minutes = data.flightTimeSeconds / 60
-        val seconds = data.flightTimeSeconds % 60
-        append("Time:$minutes:${seconds.toString().padStart(2, '0')}  ")
+        data.flightTimeSeconds?.let { flightTime ->
+            val minutes = flightTime / 60
+            val seconds = flightTime % 60
+            append("Time:$minutes:${seconds.toString().padStart(2, '0')}  ")
+        }
     }
-    if (options.showSkyBattery) append("SBat:${volts(data.skyBatteryVolts)}V  ")
-    if (options.showGroundBattery) append("GBat:${volts(data.groundBatteryVolts)}V  ")
-    if (options.showSignal) append("Signal:${data.signal}  ")
-    if (options.showLatency) append("Latency:${latency(data.latencyMillis)}ms  ")
-    if (options.showBitrate) append("Bitrate:${bitrate(data.bitrateMbps)}Mbps  ")
-    if (options.showDistance) append(distance(data.distanceMeters))
+    if (options.showSkyBattery) data.skyBatteryVolts?.let { append("SBat:${volts(it)}V  ") }
+    if (options.showGroundBattery) data.groundBatteryVolts?.let { append("GBat:${volts(it)}V  ") }
+    if (options.showSignal) data.signal?.let { append("Signal:$it  ") }
+    if (options.showLatency) data.latencyMillis?.let { append("Latency:${latency(it)}ms  ") }
+    if (options.showBitrate) data.bitrateMbps?.let { append("Bitrate:${bitrate(it)}Mbps  ") }
+    if (options.showMcs) data.mcs?.let { append("MCS:$it  ") }
+    if (options.showSnr && data.groundSnr != null && data.skySnr != null) {
+        append("SNR:${oneDecimal(data.groundSnr)}/${oneDecimal(data.skySnr)}  ")
+    }
+    if (options.showTemp && data.groundTempC != null && data.skyTempC != null) {
+        append("Temp:${data.groundTempC}/${data.skyTempC}C  ")
+    }
+    if (options.showDistance) data.distanceMeters?.let { append(distance(it)) }
 }
 
 /** Assumes [cues] is sorted by non-decreasing [SrtCue.startMillis]. */
@@ -70,6 +88,8 @@ fun srtCueAt(cues: List<SrtCue>, videoTimeMillis: Double): SrtCue? {
     }
     return cues[if (low == 0) 0 else low - 1]
 }
+
+private fun oneDecimal(value: Double): String = String.format(Locale.US, "%.1f", value)
 
 private fun volts(value: Double): String = String.format(Locale.US, "%4.1f", value)
 

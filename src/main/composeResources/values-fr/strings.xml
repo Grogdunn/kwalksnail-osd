@@ -51,6 +51,9 @@
     <string name="srt_field_latency">Latence</string>
     <string name="srt_field_bitrate">Bitrate</string>
     <string name="srt_field_distance">Distance</string>
+    <string name="srt_field_mcs">MCS</string>
+    <string name="srt_field_snr">SNR</string>
+    <string name="srt_field_temp">Température</string>
 
     <string name="export_title">Export</string>
     <string name="export_offset_x">Décalage X : %1$d px</string>

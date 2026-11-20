@@ -182,7 +182,7 @@ class AppStateHolder(
         state = state.copy(srt = null, isParsingSrt = true, srtError = null)
         try {
             val parsed = withContext(Dispatchers.IO) { srtParser.parse(path) }
-            val options = state.srtOptions.copy(showDistance = state.srtOptions.showDistance && parsed.hasDistance)
+            val options = srtOptionsFor(parsed, state.srtOptions)
             state = state.copy(srt = parsed, srtOptions = options)
             rerenderCurrentFrame()
         } catch (exception: CancellationException) {
@@ -416,6 +416,24 @@ class AppStateHolder(
                 osdPlaybackSpeedFactor(videoInfo.duration, osd.duration, state.adjustOsdPlaybackSpeed),
             )
         }
+
+    private fun srtOptionsFor(parsed: SrtFile, current: SrtOptions): SrtOptions {
+        val lacksLegacyOverlay = parsed.cues.none { cue ->
+            val data = cue.data ?: return@none false
+            data.signal != null || data.bitrateMbps != null || data.distanceMeters != null
+        }
+        return if (parsed.hasDebugFields && lacksLegacyOverlay) {
+            current.copy(
+                showMcs = true,
+                showSnr = true,
+                showSignal = false,
+                showBitrate = false,
+                showDistance = false,
+            )
+        } else {
+            current.copy(showDistance = current.showDistance && parsed.hasDistance)
+        }
+    }
 
     private fun drawSrt(image: java.awt.image.BufferedImage, videoInfo: VideoInfo, selectedFrame: Float) {
         val srt = state.srt ?: return

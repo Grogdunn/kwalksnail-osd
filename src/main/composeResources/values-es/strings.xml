@@ -51,6 +51,9 @@
     <string name="srt_field_latency">Latencia</string>
     <string name="srt_field_bitrate">Bitrate</string>
     <string name="srt_field_distance">Distancia</string>
+    <string name="srt_field_mcs">MCS</string>
+    <string name="srt_field_snr">SNR</string>
+    <string name="srt_field_temp">Temperatura</string>
 
     <string name="export_title">Exportar</string>
     <string name="export_offset_x">Desplazamiento X: %1$d px</string>
