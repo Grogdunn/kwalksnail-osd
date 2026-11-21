@@ -1,6 +1,7 @@
 package dev.grogdunn.kwalksnailosd
 
 import dev.grogdunn.kwalksnailosd.clip.ClipList
+import dev.grogdunn.kwalksnailosd.video.OsdExportMode
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
@@ -253,6 +254,69 @@ class AppStateHolderTest {
 
                 holder.setClipExcluded(entryId(list, "bad"), true)
                 assertTrue(holder.canStartBurn())
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun suggestedOsdExportNamesFollowModeAndFirstIncludedClip() {
+        runBlocking {
+            val directory = createTempDirectory("osd-name")
+            val holder = folderHolder(mapOf("alpha.mp4" to clipVideo(), "beta.mp4" to clipVideo()))
+            try {
+                val video = directory.resolve("flight.mp4")
+                video.writeText("x")
+                holder.onFilePickerClosed(video)
+                holder.setOsdExportMode(OsdExportMode.ChromaKey)
+                assertEquals("flight_osd_chroma.mp4", holder.suggestedOsdExportName())
+                holder.setOsdExportMode(OsdExportMode.ProRes4444)
+                assertEquals("flight_osd.mov", holder.suggestedOsdExportName())
+                holder.setOsdExportMode(OsdExportMode.Vp9Alpha)
+                assertEquals("flight_osd.webm", holder.suggestedOsdExportName())
+                holder.setOsdExportMode(OsdExportMode.PngSequence)
+                assertEquals("flight_osd_png", holder.suggestedOsdExportName())
+
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                for (name in listOf("beta", "alpha")) {
+                    folder.resolve("$name.mp4").writeText("x")
+                    writeOsd(folder.resolve("$name.osd"))
+                }
+                holder.onFolderPicked(folder)
+                assertEquals("alpha_osd_png", holder.suggestedOsdExportName())
+                holder.moveClipDown(entryId(requireNotNull(holder.state.clipList), "alpha"))
+                assertEquals("beta_osd_png", holder.suggestedOsdExportName())
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun pngExportWithHugeEstimateSetsBurnErrorWithoutStarting() {
+        runBlocking {
+            val directory = createTempDirectory("png-space")
+            val holder = AppStateHolder(
+                probeVideo = { clipVideo(width = 16, height = 16, frameRate = 1.0).copy(frameNumber = 1) },
+                pngRequiredBytes = { Long.MAX_VALUE },
+            )
+            try {
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                folder.resolve("tiny.mp4").writeText("x")
+                writeOsd(folder.resolve("tiny.osd"))
+                holder.onFolderPicked(folder)
+                holder.onFontFilePickerClosed(fontResource("font_36x13878.png"))
+                holder.parseSelectedFont()
+                holder.setOsdExportMode(OsdExportMode.PngSequence)
+                assertTrue(holder.canStartOsdExport())
+                holder.startOsdExport(directory.resolve("out"))
+                assertFalse(holder.state.isBurning)
+                assertTrue(holder.state.burnError?.contains(Long.MAX_VALUE.toString()) == true)
             } finally {
                 holder.close()
                 directory.toFile().deleteRecursively()

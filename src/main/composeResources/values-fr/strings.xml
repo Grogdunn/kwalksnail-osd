@@ -175,6 +175,21 @@
     <string name="osd_export_missing_encoder">ffmpeg n'a pas l'encodeur %1$s. L'export OSD seul en a besoin pour ce mode.</string>
     <string name="osd_export_png_no_space">Espace disque insuffisant pour la séquence PNG : %1$s octets requis, %2$s disponibles.</string>
     <string name="osd_export_progress">Export OSD image %1$d / %2$d · %3$s</string>
+    <string name="osd_export_mode">Mode</string>
+    <string name="osd_export_mode_burn">Burn</string>
+    <string name="osd_export_mode_chroma">Incrustation chroma</string>
+    <string name="osd_export_mode_prores">ProRes 4444</string>
+    <string name="osd_export_mode_vp9">VP9 avec alpha</string>
+    <string name="osd_export_mode_png">Séquence PNG</string>
+    <string name="osd_export_button">Exporter l'OSD</string>
+    <string name="osd_export_choose_color">Choisir la couleur…</string>
+    <string name="osd_export_choose_color_title">Choisir la couleur chroma</string>
+    <string name="osd_export_png_estimate">Taille estimée : %1$s</string>
+    <string name="dialog_save_osd">Enregistrer l'export OSD</string>
+    <string name="dialog_save_osd_png">Choisir le dossier de la séquence PNG</string>
+    <string name="osd_export_png_no_space_title">Espace disque insuffisant</string>
+    <string name="osd_export_png_confirm_title">Confirmer l'export PNG</string>
+    <string name="osd_export_png_confirm">La séquence PNG nécessite environ %1$s (%2$s octets). Libre : %3$s (%4$s octets). Continuer ?</string>
 
     <plurals name="srt_cues_with_distance">
         <item quantity="one">%1$d cue, avec distance</item>

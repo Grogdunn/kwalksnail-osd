@@ -53,11 +53,11 @@ Quality:
 
 Upstream issue #7 of avsaase/walksnail-osd-tool.
 
-- [ ] Chroma key: user-chosen color, default magenta, no antialiasing, any codec.
-- [ ] True alpha: ProRes 4444 `.mov` or VP9 alpha `.webm`.
-- [ ] PNG sequence with alpha, zero-padded names, in a subfolder.
-- [ ] Disk-space warning before writing the PNG sequence.
-- [ ] UI strings in all 5 languages (en/it/es/de/fr).
+- [x] Chroma key: user-chosen color, default magenta, no antialiasing, any codec.
+- [x] True alpha: ProRes 4444 `.mov` or VP9 alpha `.webm`.
+- [x] PNG sequence with alpha, zero-padded names, in a subfolder.
+- [x] Disk-space warning before writing the PNG sequence.
+- [x] UI strings in all 5 languages (en/it/es/de/fr).
 
 ## Deferred (not in this round)
 

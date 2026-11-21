@@ -51,6 +51,7 @@ import androidx.compose.ui.window.rememberWindowState
 import dev.grogdunn.kwalksnailosd.generated.resources.*
 import dev.grogdunn.kwalksnailosd.osd.osdPlaybackSpeedFactor
 import dev.grogdunn.kwalksnailosd.video.BurnEncoderPreference
+import dev.grogdunn.kwalksnailosd.video.OsdExportMode
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -409,6 +410,7 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
         style = MaterialTheme.typography.subtitle1,
         fontWeight = FontWeight.Bold
     )
+    OsdExportModeRow(stateHolder)
 
     Text(stringResource(Res.string.export_offset_x, state.osdOffsetX), style = MaterialTheme.typography.caption)
     Slider(
@@ -533,11 +535,84 @@ private fun EncoderChoiceButton(label: String, selected: Boolean, enabled: Boole
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OsdExportModeRow(stateHolder: AppStateHolder) {
+    val state = stateHolder.state
+    val enabled = !state.isBurning
+    val colorTitle = stringResource(Res.string.osd_export_choose_color_title)
+    Text(stringResource(Res.string.osd_export_mode), style = MaterialTheme.typography.caption)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        listOf(
+            null to Res.string.osd_export_mode_burn,
+            OsdExportMode.ChromaKey to Res.string.osd_export_mode_chroma,
+            OsdExportMode.ProRes4444 to Res.string.osd_export_mode_prores,
+            OsdExportMode.Vp9Alpha to Res.string.osd_export_mode_vp9,
+            OsdExportMode.PngSequence to Res.string.osd_export_mode_png,
+        ).forEach { (mode, label) ->
+            OutlinedButton(
+                onClick = { stateHolder.setOsdExportMode(mode) },
+                enabled = enabled,
+                colors = if (state.osdExportMode == mode) {
+                    ButtonDefaults.outlinedButtonColors(backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.18f))
+                } else {
+                    ButtonDefaults.outlinedButtonColors()
+                },
+            ) {
+                Text(stringResource(label), fontSize = 12.sp)
+            }
+        }
+    }
+    if (state.osdExportMode == OsdExportMode.ChromaKey) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(24.dp)
+                    .height(24.dp)
+                    .background(Color(state.osdChromaColor))
+                    .border(1.dp, Color.Gray),
+            )
+            Text(chromaHex(state.osdChromaColor), style = MaterialTheme.typography.caption, fontFamily = FontFamily.Monospace)
+            OutlinedButton(
+                onClick = {
+                    val chosen = javax.swing.JColorChooser.showDialog(
+                        null,
+                        colorTitle,
+                        java.awt.Color(state.osdChromaColor, true),
+                    )
+                    if (chosen != null) stateHolder.setOsdChromaColor(chosen.rgb)
+                },
+                enabled = enabled,
+            ) {
+                Text(stringResource(Res.string.osd_export_choose_color), fontSize = 12.sp)
+            }
+        }
+    }
+    if (state.osdExportMode == OsdExportMode.PngSequence) {
+        val bytes = stateHolder.estimatedPngSequenceBytes()
+        if (bytes != null) {
+            Text(
+                text = stringResource(Res.string.osd_export_png_estimate, formatByteSize(bytes)),
+                style = MaterialTheme.typography.caption,
+                color = Color.Gray,
+            )
+        }
+    }
+}
+
 @Composable
 private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
     val state = stateHolder.state
+    val exportingOsd = state.osdExportMode != null
     val canBurn = stateHolder.canStartBurn()
     val saveTitle = stringResource(Res.string.dialog_save_video)
+    val saveOsdTitle = stringResource(Res.string.dialog_save_osd)
+    val savePngTitle = stringResource(Res.string.dialog_save_osd_png)
+    val noSpaceTitle = stringResource(Res.string.osd_export_png_no_space_title)
+    val confirmTitle = stringResource(Res.string.osd_export_png_confirm_title)
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.isBurning || state.burnMessage != null) {
@@ -560,17 +635,62 @@ private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
             } else {
                 OutlinedButton(
                     onClick = {
-                        desktopSaveDialog(stateHolder.suggestedOutputName(), saveTitle) { path ->
-                            if (path != null) stateHolder.startBurn(path)
+                        if (!exportingOsd) {
+                            desktopSaveDialog(stateHolder.suggestedOutputName(), saveTitle) { path ->
+                                if (path != null) stateHolder.startBurn(path)
+                            }
+                        } else if (state.osdExportMode == OsdExportMode.PngSequence) {
+                            desktopPngSequenceDialog(stateHolder.suggestedOsdExportName(), savePngTitle) { path ->
+                                if (path == null) return@desktopPngSequenceDialog
+                                val space = stateHolder.pngExportSpace(path) ?: return@desktopPngSequenceDialog
+                                if (!space.enough) {
+                                    javax.swing.JOptionPane.showMessageDialog(
+                                        null,
+                                        uiText(
+                                            Res.string.osd_export_png_no_space,
+                                            space.requiredBytes.toString(),
+                                            space.availableBytes.toString(),
+                                        ),
+                                        noSpaceTitle,
+                                        javax.swing.JOptionPane.WARNING_MESSAGE,
+                                    )
+                                    return@desktopPngSequenceDialog
+                                }
+                                val confirm = javax.swing.JOptionPane.showConfirmDialog(
+                                    null,
+                                    uiText(
+                                        Res.string.osd_export_png_confirm,
+                                        formatByteSize(space.requiredBytes),
+                                        space.requiredBytes.toString(),
+                                        formatByteSize(space.availableBytes),
+                                        space.availableBytes.toString(),
+                                    ),
+                                    confirmTitle,
+                                    javax.swing.JOptionPane.OK_CANCEL_OPTION,
+                                    javax.swing.JOptionPane.WARNING_MESSAGE,
+                                )
+                                if (confirm == javax.swing.JOptionPane.OK_OPTION) stateHolder.startOsdExport(path)
+                            }
+                        } else {
+                            desktopSaveDialog(
+                                stateHolder.suggestedOsdExportName(),
+                                saveOsdTitle,
+                                defaultExtension = stateHolder.osdExportDefaultExtension(),
+                            ) { path ->
+                                if (path != null) stateHolder.startOsdExport(path)
+                            }
                         }
                     },
                     colors = ButtonDefaults.outlinedButtonColors(
                         backgroundColor = Color.Red,
                         contentColor = Color.Black
                     ),
-                    enabled = canBurn
+                    enabled = if (exportingOsd) stateHolder.canStartOsdExport() else canBurn
                 ) {
-                    Text(stringResource(Res.string.export_burn), fontSize = 12.sp)
+                    Text(
+                        stringResource(if (exportingOsd) Res.string.osd_export_button else Res.string.export_burn),
+                        fontSize = 12.sp,
+                    )
                 }
             }
         }
@@ -942,4 +1062,17 @@ private fun formatTimestamp(secondsDouble: Double): String {
     val seconds = (totalMillis % 60000) / 1000
     val millis = totalMillis % 1000
     return "%02d:%02d.%03d".format(minutes, seconds, millis)
+}
+
+private fun chromaHex(argb: Int): String = "#%08X".format(argb.toLong() and 0xFFFFFFFFL)
+
+private fun formatByteSize(bytes: Long): String {
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    var value = bytes.toDouble().coerceAtLeast(0.0)
+    var unit = 0
+    while (value >= 1024.0 && unit < units.lastIndex) {
+        value /= 1024.0
+        unit++
+    }
+    return if (unit == 0) "$bytes ${units[unit]}" else "%.1f %s".format(value, units[unit])
 }
