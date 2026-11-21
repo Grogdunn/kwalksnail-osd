@@ -1,5 +1,7 @@
 package dev.grogdunn.kwalksnailosd.clip
 
+import dev.grogdunn.kwalksnailosd.osd.Osd
+import dev.grogdunn.kwalksnailosd.srt.SrtFile
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import java.nio.file.Path
 import java.time.Duration
@@ -18,6 +20,10 @@ data class ClipInfo(
     val files: ClipFiles,
     val videoInfo: VideoInfo?,
     val probeError: String? = null,
+    val osd: Osd? = null,
+    val srt: SrtFile? = null,
+    val osdError: String? = null,
+    val srtError: String? = null,
 )
 
 data class ClipEntry(
@@ -81,7 +87,7 @@ data class ClipList(
     fun canBurn(): Boolean {
         val included = included()
         if (included.isEmpty()) return false
-        if (included.any { it.info.videoInfo == null || it.info.files.osd == null }) return false
+        if (included.any { it.info.videoInfo == null || it.info.files.osd == null || it.info.osd == null }) return false
         val mismatch = mismatch()
         return !mismatch.resolution && !mismatch.fps
     }

@@ -12,6 +12,7 @@ import dev.grogdunn.kwalksnailosd.generated.resources.burn_no_ffmpeg_detail
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.font.Font
 import dev.grogdunn.kwalksnailosd.srt.SrtFile
+import dev.grogdunn.kwalksnailosd.srt.SrtOptions
 import dev.grogdunn.kwalksnailosd.uiText
 import dev.grogdunn.kwalksnailosd.video.BurnProgress
 import dev.grogdunn.kwalksnailosd.video.BurnResult
@@ -52,6 +53,7 @@ class MultiClipBurner(
         onProgress: (BurnProgress) -> Unit = {},
         onPreviewFrame: (BufferedImage) -> Unit = {},
         isCancelled: () -> Boolean = { false },
+        srtOptions: SrtOptions = SrtOptions(),
     ): BurnResult {
         validate(clips)
         throwIfCancelled(isCancelled)
@@ -77,6 +79,7 @@ class MultiClipBurner(
                     },
                     isCancelled = isCancelled,
                     srt = clip.srt,
+                    srtOptions = srtOptions,
                     onPreviewFrame = preview::offer,
                     copyAudio = false,
                 )

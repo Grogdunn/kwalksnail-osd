@@ -1,5 +1,8 @@
 package dev.grogdunn.kwalksnailosd.clip
 
+import dev.grogdunn.kwalksnailosd.osd.FcFirmware
+import dev.grogdunn.kwalksnailosd.osd.Frame
+import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import java.nio.file.Path
 import java.time.Duration
@@ -127,7 +130,11 @@ class ClipListTest {
         assertFalse(clipList(entry("Alpha", osd = false), beta).canBurn())
         assertFalse(clipList(entry("Alpha", videoInfo = null, probeError = "bad"), beta).canBurn())
         assertFalse(clipList().canBurn())
+        val unparsed = entry("Beta").let { clip -> clip.copy(info = clip.info.copy(osd = null, osdError = "bad")) }
+        assertFalse(clipList(alpha, unparsed).canBurn())
     }
+
+    private fun parsedOsd(): Osd = Osd(FcFirmware.BETAFLIGHT, listOf(Frame(0, emptyList())), Duration.ofMillis(1))
 
     @Test
     fun outputStemUsesFirstIncludedBaseNameAfterReorder() {
@@ -171,6 +178,7 @@ class ClipListTest {
                 ),
                 videoInfo = videoInfo,
                 probeError = probeError,
+                osd = if (osd) parsedOsd() else null,
             ),
             excluded = excluded,
         )
