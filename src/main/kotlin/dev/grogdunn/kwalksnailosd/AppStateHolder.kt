@@ -155,6 +155,7 @@ class AppStateHolder(
             val enriched = scanned.copy(entries = scanned.entries.map { entry ->
                 entry.copy(info = parseCompanions(entry.info))
             })
+            val representative = representativeSrt(enriched)
             state = state.copy(
                 clipList = enriched,
                 clipFolderError = null,
@@ -168,7 +169,8 @@ class AppStateHolder(
                 videoError = null,
                 bitmap = null,
                 selectedFrame = 0.0f,
-                srt = null,
+                srt = representative,
+                srtOptions = if (representative != null) srtOptionsFor(representative, state.srtOptions) else state.srtOptions,
                 isParsingSrt = false,
                 srtError = null,
             )
@@ -612,6 +614,15 @@ class AppStateHolder(
     private fun rerenderCurrentFrame() {
         if (state.selectedMp4 == null || state.videoInfo == null || state.osd == null || state.font == null) return
         onFrameSelected(state.selectedFrame)
+    }
+
+    private fun representativeSrt(list: ClipList): SrtFile? {
+        val parsed = list.entries.mapNotNull { it.info.srt }
+        val first = parsed.firstOrNull() ?: return null
+        return first.copy(
+            hasDistance = parsed.any { it.hasDistance },
+            hasDebugFields = parsed.any { it.hasDebugFields },
+        )
     }
 
     private fun parseCompanions(info: ClipInfo): ClipInfo {

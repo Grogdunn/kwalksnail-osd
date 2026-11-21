@@ -14,6 +14,7 @@
     <string name="dialog_open_srt">Select SRT subtitles</string>
     <string name="dialog_open_font">Select OSD font</string>
     <string name="dialog_save_video">Save video with OSD</string>
+    <string name="dialog_open_folder">Select clip folder</string>
 
     <string name="sidebar_source_files">Source files</string>
     <string name="file_video_mp4">MP4 video</string>
@@ -23,6 +24,25 @@
     <string name="file_none_selected">No file selected</string>
     <string name="file_error">Error: %1$s</string>
     <string name="file_select">Select...</string>
+    <string name="clips_open_folder">Open folder...</string>
+    <string name="clips_restore_order">Restore A→Z</string>
+    <string name="clips_exclude">Exclude</string>
+    <string name="clips_column_resolution">Res</string>
+    <string name="clips_column_fps">FPS</string>
+    <string name="clips_column_duration">Duration</string>
+    <string name="clips_column_osd">OSD</string>
+    <string name="clips_column_srt">SRT</string>
+    <string name="clips_yes">Yes</string>
+    <string name="clips_no">No</string>
+    <string name="clips_resolution">%1$d×%2$d</string>
+    <string name="clips_fps">%1$s fps</string>
+    <string name="clips_total_duration">Total duration: %1$s</string>
+    <string name="clips_mismatch_resolution">Included clips do not share the same resolution.</string>
+    <string name="clips_mismatch_fps">Included clips do not share the same frame rate.</string>
+    <string name="clips_mismatch_both">Included clips do not share the same resolution or frame rate.</string>
+    <string name="clips_move_up">Move up</string>
+    <string name="clips_move_down">Move down</string>
+    <string name="clips_drag_handle">Drag to reorder</string>
 
     <string name="details_title">Video &amp; OSD details</string>
     <string name="details_video">Video:</string>
@@ -95,6 +115,7 @@
     <string name="status_font_error">Font error: %1$s</string>
     <string name="status_font_error_short">Font error</string>
     <string name="status_video_loaded">Video loaded: %1$s</string>
+    <string name="status_folder_loaded">Folder: %1$s — %2$d/%3$d clips</string>
     <string name="status_ready">Ready - no video loaded</string>
     <string name="status_no_video">No video</string>
     <string name="status_no_osd">No OSD</string>

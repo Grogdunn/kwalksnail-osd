@@ -125,6 +125,7 @@ class AppStateHolderTest {
                 assertEquals(listOf("a", "b"), list.entries.map { it.info.files.baseName })
                 assertNotNull(list.entries[0].info.osd)
                 assertNotNull(list.entries[0].info.srtError)
+                assertNull(holder.state.srt)
                 assertNull(list.entries[1].info.osd)
                 assertNotNull(list.entries[1].info.osdError)
 
@@ -132,6 +133,38 @@ class AppStateHolderTest {
                 assertNull(holder.state.clipList)
                 assertNull(holder.state.clipFolderError)
                 assertEquals(stray, holder.state.selectedMp4)
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun folderWithParsedSrtEnablesOverlayFlags() {
+        runBlocking {
+            val directory = createTempDirectory("folder-srt")
+            val holder = folderHolder(mapOf("a.mp4" to clipVideo(), "b.mp4" to clipVideo()))
+            try {
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                folder.resolve("a.mp4").writeText("x")
+                folder.resolve("b.mp4").writeText("x")
+                writeOsd(folder.resolve("a.osd"))
+                writeOsd(folder.resolve("b.osd"))
+                folder.resolve("a.srt").writeText(srtCue("CH:1 MCS:4 GSNR:25.9 SSNR:17.8 Delay:31ms"))
+                folder.resolve("b.srt").writeText(
+                    srtCue("Signal:4 CH:1 FlightTime:1 SBat:16.1V GBat:11.2V Delay:31ms Bitrate:25Mbps Distance:7m"),
+                )
+
+                holder.onFolderPicked(folder)
+
+                val srt = requireNotNull(holder.state.srt)
+                assertTrue(srt.hasDebugFields)
+                assertTrue(srt.hasDistance)
+                assertTrue(holder.state.srtOptions.showMcs)
+                assertTrue(holder.state.srtOptions.showSnr)
+                assertFalse(holder.state.srtOptions.showSignal)
             } finally {
                 holder.close()
                 directory.toFile().deleteRecursively()
@@ -242,6 +275,8 @@ class AppStateHolderTest {
         frameNumber = frameRate.toInt(),
         hasAudio = false,
     )
+
+    private fun srtCue(body: String) = "1\n00:00:00,000 --> 00:00:00,400\n$body\n"
 
     private fun writeOsd(path: Path) {
         val gridWidth = 53
