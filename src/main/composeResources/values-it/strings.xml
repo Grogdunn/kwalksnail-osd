@@ -172,6 +172,9 @@
     <string name="ffmpeg_not_found_with_detail">ffmpeg non è disponibile. L'export cerca prima il binario incluso nelle librerie native JavaCV (lo stesso dei pacchetti dell'app) e poi il comando ffmpeg nel PATH. Installa ffmpeg, oppure avvia l'app dal pacchetto che include quelle librerie. Dettaglio: %1$s</string>
     <string name="ffmpeg_no_h264">Nessun encoder H.264 software. L'ffmpeg delle librerie JavaCV include libopenh264; in alternativa serve un ffmpeg con libx264 nel PATH.</string>
     <string name="ffmpeg_no_h265">Nessun encoder H.265 software. L'ffmpeg delle librerie JavaCV, quello dei pacchetti, non include libx265 (è una build LGPL e per H.264 usa libopenh264). Installa ffmpeg con libx265, oppure esporta in H.264.</string>
+    <string name="osd_export_missing_encoder">ffmpeg non ha l'encoder %1$s. L'esportazione solo OSD ne ha bisogno per questa modalità.</string>
+    <string name="osd_export_png_no_space">Spazio su disco insufficiente per la sequenza PNG: servono %1$s byte, disponibili %2$s.</string>
+    <string name="osd_export_progress">Esportazione OSD frame %1$d / %2$d · %3$s</string>
 
     <plurals name="srt_cues_with_distance">
         <item quantity="one">%1$d cue, con distanza</item>
