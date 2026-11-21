@@ -14,6 +14,7 @@
     <string name="dialog_open_srt">Sélectionner les sous-titres SRT</string>
     <string name="dialog_open_font">Sélectionner la police OSD</string>
     <string name="dialog_save_video">Enregistrer la vidéo avec l'OSD</string>
+    <string name="dialog_open_folder">Sélectionner le dossier des clips</string>
 
     <string name="sidebar_source_files">Fichiers source</string>
     <string name="file_video_mp4">Vidéo MP4</string>
@@ -23,6 +24,25 @@
     <string name="file_none_selected">Aucun fichier sélectionné</string>
     <string name="file_error">Erreur : %1$s</string>
     <string name="file_select">Sélectionner...</string>
+    <string name="clips_open_folder">Ouvrir un dossier...</string>
+    <string name="clips_restore_order">Restaurer A→Z</string>
+    <string name="clips_exclude">Exclure</string>
+    <string name="clips_column_resolution">Rés.</string>
+    <string name="clips_column_fps">IPS</string>
+    <string name="clips_column_duration">Durée</string>
+    <string name="clips_column_osd">OSD</string>
+    <string name="clips_column_srt">SRT</string>
+    <string name="clips_yes">Oui</string>
+    <string name="clips_no">Non</string>
+    <string name="clips_resolution">%1$d×%2$d</string>
+    <string name="clips_fps">%1$s fps</string>
+    <string name="clips_total_duration">Durée totale : %1$s</string>
+    <string name="clips_mismatch_resolution">Les clips inclus n'ont pas la même résolution.</string>
+    <string name="clips_mismatch_fps">Les clips inclus n'ont pas la même fréquence d'images.</string>
+    <string name="clips_mismatch_both">Les clips inclus n'ont pas la même résolution ni la même fréquence d'images.</string>
+    <string name="clips_move_up">Monter</string>
+    <string name="clips_move_down">Descendre</string>
+    <string name="clips_drag_handle">Glisser pour réordonner</string>
 
     <string name="details_title">Détails vidéo et OSD</string>
     <string name="details_video">Vidéo :</string>
@@ -95,6 +115,7 @@
     <string name="status_font_error">Erreur de police : %1$s</string>
     <string name="status_font_error_short">Erreur de police</string>
     <string name="status_video_loaded">Vidéo chargée : %1$s</string>
+    <string name="status_folder_loaded">Dossier : %1$s — %2$d/%3$d clips</string>
     <string name="status_ready">Prêt - aucune vidéo chargée</string>
     <string name="status_no_video">Aucune vidéo</string>
     <string name="status_no_osd">Aucun OSD</string>

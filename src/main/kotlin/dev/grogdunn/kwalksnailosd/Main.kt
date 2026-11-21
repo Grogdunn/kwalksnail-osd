@@ -52,7 +52,6 @@ import dev.grogdunn.kwalksnailosd.generated.resources.*
 import dev.grogdunn.kwalksnailosd.osd.osdPlaybackSpeedFactor
 import dev.grogdunn.kwalksnailosd.video.BurnEncoderPreference
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
-import dev.grogdunn.kwalksnailosd.video.outputNameFor
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import java.time.Duration
@@ -172,6 +171,7 @@ private fun LeftSidebarPanel(
     val state = stateHolder.state
     val scrollState = rememberScrollState()
     val openVideoTitle = stringResource(Res.string.dialog_open_video)
+    val openFolderTitle = stringResource(Res.string.dialog_open_folder)
     val openOsdTitle = stringResource(Res.string.dialog_open_osd)
     val openSrtTitle = stringResource(Res.string.dialog_open_srt)
     val openFontTitle = stringResource(Res.string.dialog_open_font)
@@ -189,34 +189,46 @@ private fun LeftSidebarPanel(
             fontWeight = FontWeight.Bold
         )
 
-        FileSelectorCard(
-            title = stringResource(Res.string.file_video_mp4),
-            fileName = state.selectedMp4?.fileName?.toString(),
-            errorMessage = state.videoError,
-            onSelectClick = {
-                desktopFileDialog(openVideoTitle, allowedExtensions = listOf("mp4"), onCloseRequest = stateHolder::onFilePickerClosed)
-            }
-        )
+        OutlinedButton(
+            onClick = { desktopFolderDialog(openFolderTitle, stateHolder::onFolderPicked) },
+            enabled = !state.isBurning,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(Res.string.clips_open_folder), fontSize = 12.sp)
+        }
 
-        FileSelectorCard(
-            title = stringResource(Res.string.file_osd_data),
-            fileName = state.selectedOsd?.fileName?.toString(),
-            isLoading = state.isParsingOsd,
-            errorMessage = state.osdError,
-            onSelectClick = {
-                desktopFileDialog(openOsdTitle, allowedExtensions = listOf("osd"), onCloseRequest = stateHolder::onFilePickerClosed)
-            }
-        )
+        if (state.clipList == null) {
+            FileSelectorCard(
+                title = stringResource(Res.string.file_video_mp4),
+                fileName = state.selectedMp4?.fileName?.toString(),
+                errorMessage = state.videoError,
+                onSelectClick = {
+                    desktopFileDialog(openVideoTitle, allowedExtensions = listOf("mp4"), onCloseRequest = stateHolder::onFilePickerClosed)
+                }
+            )
 
-        FileSelectorCard(
-            title = stringResource(Res.string.file_srt),
-            fileName = state.selectedSrt?.fileName?.toString(),
-            isLoading = state.isParsingSrt,
-            errorMessage = state.srtError,
-            onSelectClick = {
-                desktopFileDialog(openSrtTitle, allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
-            }
-        )
+            FileSelectorCard(
+                title = stringResource(Res.string.file_osd_data),
+                fileName = state.selectedOsd?.fileName?.toString(),
+                isLoading = state.isParsingOsd,
+                errorMessage = state.osdError,
+                onSelectClick = {
+                    desktopFileDialog(openOsdTitle, allowedExtensions = listOf("osd"), onCloseRequest = stateHolder::onFilePickerClosed)
+                }
+            )
+
+            FileSelectorCard(
+                title = stringResource(Res.string.file_srt),
+                fileName = state.selectedSrt?.fileName?.toString(),
+                isLoading = state.isParsingSrt,
+                errorMessage = state.srtError,
+                onSelectClick = {
+                    desktopFileDialog(openSrtTitle, allowedExtensions = listOf("srt"), onCloseRequest = stateHolder::onFilePickerClosed)
+                }
+            )
+        } else {
+            ClipListPanel(stateHolder)
+        }
 
         FileSelectorCard(
             title = stringResource(Res.string.file_font),
@@ -524,7 +536,7 @@ private fun EncoderChoiceButton(label: String, selected: Boolean, enabled: Boole
 @Composable
 private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
     val state = stateHolder.state
-    val canBurn = state.osd != null && state.videoInfo != null && state.font != null && state.selectedMp4 != null
+    val canBurn = stateHolder.canStartBurn()
     val saveTitle = stringResource(Res.string.dialog_save_video)
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -548,8 +560,7 @@ private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
             } else {
                 OutlinedButton(
                     onClick = {
-                        val input = state.selectedMp4 ?: return@OutlinedButton
-                        desktopSaveDialog(outputNameFor(input), saveTitle) { path ->
+                        desktopSaveDialog(stateHolder.suggestedOutputName(), saveTitle) { path ->
                             if (path != null) stateHolder.startBurn(path)
                         }
                     },
@@ -681,6 +692,8 @@ private fun VideoPreviewAndControls(
                 }
             }
         }
+
+        if (state.clipList != null) return@Column
 
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -819,6 +832,31 @@ private fun StatusBar(
                         Text(stringResource(Res.string.status_export_error, state.burnError), style = MaterialTheme.typography.caption, color = MaterialTheme.colors.error, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
 
+                    state.clipFolderError != null -> {
+                        Text(
+                            stringResource(Res.string.file_error, state.clipFolderError),
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.error,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    state.clipList != null -> {
+                        val list = state.clipList
+                        Text(
+                            stringResource(
+                                Res.string.status_folder_loaded,
+                                list.folder.fileName.toString(),
+                                list.included().size,
+                                list.entries.size,
+                            ),
+                            style = MaterialTheme.typography.caption,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
                     state.isParsingOsd -> {
                         CircularProgressIndicator(modifier = Modifier.height(12.dp).width(12.dp), strokeWidth = 2.dp)
                         Text(stringResource(Res.string.status_parsing_osd), style = MaterialTheme.typography.caption)
@@ -886,7 +924,7 @@ private fun StatusBar(
     }
 }
 
-private fun formatDuration(duration: Duration): String {
+internal fun formatDuration(duration: Duration): String {
     val totalSeconds = duration.seconds
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60

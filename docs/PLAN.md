@@ -25,29 +25,29 @@ Scanner and list:
 
 - [x] Scan a folder and group video, `.osd` and `.srt` files by base name.
 - [x] Default order: lexicographic by name.
-- [ ] Reorder with a drag handle and with up/down buttons.
-- [ ] "Restore A→Z" button.
-- [ ] Per-clip "exclude" checkbox.
-- [ ] Per-row info: resolution, fps, duration, OSD present, SRT present.
-- [ ] Total duration of the included clips.
+- [x] Reorder with a drag handle and with up/down buttons.
+- [x] "Restore A→Z" button.
+- [x] Per-clip "exclude" checkbox.
+- [x] Per-row info: resolution, fps, duration, OSD present, SRT present.
+- [x] Total duration of the included clips.
 
 Validation:
 
-- [ ] Resolution or fps mismatch between included clips is highlighted on the rows and listed in a message.
-- [ ] Burn is disabled while there is a mismatch.
+- [x] Resolution or fps mismatch between included clips is highlighted on the rows and listed in a message.
+- [x] Burn is disabled while there is a mismatch.
 
 Output and rendering:
 
-- [ ] Output file `<firstclip>_joined` in the output folder.
-- [ ] Global OSD offset applied to every clip.
-- [ ] Concatenated AAC audio, with silence for clips that have no audio.
-- [ ] Live preview, downscaled, updated about every 0.5 s and throttled.
-- [ ] Progress as "clip n/N", percentage and ETA, plus a Cancel button.
+- [x] Output file `<firstclip>_joined` in the output folder.
+- [x] Global OSD offset applied to every clip.
+- [x] Concatenated AAC audio, with silence for clips that have no audio.
+- [x] Live preview, downscaled, updated about every 0.5 s and throttled.
+- [x] Progress as "clip n/N", percentage and ETA, plus a Cancel button.
 
 Quality:
 
-- [ ] UI strings in all 5 languages (en/it/es/de/fr).
-- [ ] Single-video mode unchanged (regression tests).
+- [x] UI strings in all 5 languages (en/it/es/de/fr).
+- [x] Single-video mode unchanged (regression tests).
 
 ## 4. OSD-only export
 
