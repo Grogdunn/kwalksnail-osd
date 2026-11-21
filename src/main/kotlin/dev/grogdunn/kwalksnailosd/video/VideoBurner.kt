@@ -62,6 +62,8 @@ class VideoBurner(
         isCancelled: () -> Boolean = { false },
         srt: SrtFile? = null,
         srtOptions: SrtOptions = SrtOptions(),
+        onPreviewFrame: ((BufferedImage) -> Unit)? = null,
+        copyAudio: Boolean? = null,
     ): BurnResult {
         validate(input, output, videoInfo, osd, settings)
         val speedFactor = osdPlaybackSpeedFactor(videoInfo.duration, osd.duration, settings.adjustPlaybackSpeed)
@@ -84,6 +86,7 @@ class VideoBurner(
                         input, output, videoInfo, osd, font, settings, recipe, speedFactor,
                         usedSoftwareFallback = fallbackDetail != null,
                         onProgress, isCancelled, srt, srtOptions,
+                        onPreviewFrame, copyAudio ?: videoInfo.hasAudio,
                     )
                 },
                 onFallback = { failed, next, error ->
@@ -118,6 +121,8 @@ class VideoBurner(
         isCancelled: () -> Boolean,
         srt: SrtFile?,
         srtOptions: SrtOptions,
+        onPreviewFrame: ((BufferedImage) -> Unit)?,
+        copyAudio: Boolean,
     ): BurnResult {
         throwIfCancelled(isCancelled)
         val width = videoInfo.width
@@ -126,7 +131,7 @@ class VideoBurner(
         val expectedFrames = expectedFrameCount(videoInfo)
         val decoder = startDecoder(input, expectedFrames)
         val decoderErrors = collectStderr(decoder)
-        val encoderProcess = startEncoder(input, output, videoInfo, encoder, settings.bitrateMbps, videoInfo.hasAudio)
+        val encoderProcess = startEncoder(input, output, videoInfo, encoder, settings.bitrateMbps, copyAudio)
         discardStdout(encoderProcess)
         val encoderErrors = collectStderr(encoderProcess)
         var framesWritten = 0
@@ -143,7 +148,11 @@ class VideoBurner(
                         val videoTimeMillis = framesWritten / videoInfo.frameRate * 1000.0
                         val osdFrame = osdFrameAt(osd.frames, videoTimeMillis, speedFactor)
                             ?: throw VideoBurnException(uiText(Res.string.burn_no_osd_frames))
-                        drawOsd(raw, width, height, osdFrame, font, settings.offsetX, settings.offsetY, srt, srtOptions, videoTimeMillis)
+                        val preview = drawOsd(
+                            raw, width, height, osdFrame, font, settings.offsetX, settings.offsetY,
+                            srt, srtOptions, videoTimeMillis,
+                        )
+                        if (onPreviewFrame != null) onPreviewFrame(preview)
                         encoded.write(raw)
                         framesWritten += 1
                         if (framesWritten == 1 || framesWritten == expectedFrames || framesWritten % 5 == 0) {
@@ -198,7 +207,7 @@ class VideoBurner(
         srt: SrtFile?,
         srtOptions: SrtOptions,
         videoTimeMillis: Double,
-    ) {
+    ): BufferedImage {
         val image = BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR)
         val raster = (image.raster.dataBuffer as DataBufferByte).data
         if (raster.size != bgr.size) {
@@ -209,6 +218,7 @@ class VideoBurner(
         val srtData = srt?.let { srtCueAt(it.cues, videoTimeMillis)?.data }
         if (srtData != null) SrtOverlay.draw(image, srtData, srtOptions)
         System.arraycopy(raster, 0, bgr, 0, bgr.size)
+        return image
     }
 
     private fun startDecoder(input: Path, frames: Int): Process {

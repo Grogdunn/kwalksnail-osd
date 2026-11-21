@@ -128,6 +128,11 @@
     <string name="burn_bad_bitrate">The bitrate must be positive.</string>
     <string name="burn_encoder_stopped">ffmpeg stopped encoder %1$s. %2$s</string>
     <string name="burn_no_ffmpeg_detail">no detail from ffmpeg</string>
+    <string name="burn_multiclip_empty">No clips to export.</string>
+    <string name="burn_multiclip_mismatch">Clips must have the same resolution and frame rate.</string>
+    <string name="burn_multiclip_no_osd">Every clip needs OSD data.</string>
+    <string name="burn_multiclip_progress">Clip %1$d/%2$d — %3$d%% — ETA %4$s</string>
+    <string name="burn_multiclip_muxing">Muxing clips…</string>
 
     <string name="error_srt_unreadable">Could not read the SRT file</string>
     <string name="error_srt_empty">The SRT file contains no subtitles.</string>
