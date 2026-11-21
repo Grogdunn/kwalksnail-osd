@@ -2,6 +2,7 @@ package dev.grogdunn.kwalksnailosd.srt
 
 import dev.grogdunn.kwalksnailosd.generated.resources.Res
 import dev.grogdunn.kwalksnailosd.generated.resources.error_srt_empty
+import dev.grogdunn.kwalksnailosd.generated.resources.error_srt_unrecognized
 import dev.grogdunn.kwalksnailosd.uiText
 import java.nio.file.Files
 import java.nio.file.Path
@@ -15,6 +16,9 @@ class SrtParser {
             .sortedBy { it.startMillis }
         if (cues.isEmpty()) {
             throw IllegalArgumentException(uiText(Res.string.error_srt_empty))
+        }
+        if (cues.all { it.data == null }) {
+            throw IllegalArgumentException(uiText(Res.string.error_srt_unrecognized))
         }
         return SrtFile(
             cues = cues,

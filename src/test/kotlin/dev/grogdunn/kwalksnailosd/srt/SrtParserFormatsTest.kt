@@ -7,9 +7,10 @@ import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 
 class SrtParserFormatsTest {
@@ -155,6 +156,14 @@ class SrtParserFormatsTest {
         assertNull(file.cues[0].data)
         assertEquals(4, file.cues[1].data?.signal)
         assertFalse(file.hasDistance)
+    }
+
+    @Test
+    fun unrecognizedTelemetryIsRejected() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            parse("this is a regular movie subtitle")
+        }
+        assertTrue(error.message!!.contains("SRT"), error.message)
     }
 
     @Test

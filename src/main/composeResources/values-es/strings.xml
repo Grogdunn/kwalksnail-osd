@@ -157,6 +157,7 @@
 
     <string name="error_srt_unreadable">No se ha podido leer el archivo SRT</string>
     <string name="error_srt_empty">El archivo SRT no contiene subtítulos.</string>
+    <string name="error_srt_unrecognized">El archivo SRT no contiene telemetría Walksnail o Caddx reconocida.</string>
     <string name="error_osd_unreadable">No se ha podido leer el archivo OSD</string>
     <string name="error_osd_header">Cabecera OSD incompleta: se esperaban %1$d bytes y se recibieron %2$d</string>
     <string name="error_osd_frame">Fotograma OSD incompleto: se esperaban %1$d bytes y se recibieron %2$d</string>
