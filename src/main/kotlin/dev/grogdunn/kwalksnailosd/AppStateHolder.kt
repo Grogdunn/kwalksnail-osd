@@ -5,9 +5,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import dev.grogdunn.kwalksnailosd.clip.ClipFolderScanner
+import dev.grogdunn.kwalksnailosd.clip.ClipInfo
+import dev.grogdunn.kwalksnailosd.clip.ClipList
+import dev.grogdunn.kwalksnailosd.clip.MultiClipBurner
+import dev.grogdunn.kwalksnailosd.clip.PreparedClip
 import dev.grogdunn.kwalksnailosd.generated.resources.Res
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_cancelled
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_failed
+import dev.grogdunn.kwalksnailosd.generated.resources.burn_multiclip_no_osd
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_saved
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_saved_software_fallback
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_starting
@@ -35,10 +41,12 @@ import dev.grogdunn.kwalksnailosd.video.BurnSettings
 import dev.grogdunn.kwalksnailosd.video.FfmpegLocator
 import dev.grogdunn.kwalksnailosd.video.HardwareEncoderCatalog
 import dev.grogdunn.kwalksnailosd.video.HardwareKind
+import dev.grogdunn.kwalksnailosd.video.VideoBurnException
 import dev.grogdunn.kwalksnailosd.video.VideoBurner
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import dev.grogdunn.kwalksnailosd.video.VideoParser
+import dev.grogdunn.kwalksnailosd.video.outputNameFor
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +57,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.awt.image.BufferedImage
 import java.nio.file.Path
 import javax.swing.SwingUtilities
 import kotlin.io.path.extension
@@ -87,13 +96,17 @@ data class AppUiState(
     val isParsingSrt: Boolean = false,
     val srtError: String? = null,
     val srtOptions: SrtOptions = SrtOptions(),
+    val clipList: ClipList? = null,
+    val clipFolderError: String? = null,
 )
 
 class AppStateHolder(
     private val osdParser: OsdParser = OsdParser(),
     private val srtParser: SrtParser = SrtParser(),
     private val fontParser: FontParser = FontParser(),
-    private val videoParser: VideoParser = VideoParser()
+    private val videoParser: VideoParser = VideoParser(),
+    private val clipScanner: ClipFolderScanner = ClipFolderScanner(),
+    private val probeVideo: (Path) -> VideoInfo = { videoParser.getVideoInfo(it) },
 ) : AutoCloseable {
     private val logger = KotlinLogging.logger {}
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -117,6 +130,8 @@ class AppStateHolder(
         val selectedSrt = if (path.extension.equals("srt", ignoreCase = true)) path else state.selectedSrt ?: relatedFiles.srtPath
         val srtChanged = selectedSrt != state.selectedSrt
         state = state.copy(
+            clipList = null,
+            clipFolderError = null,
             selectedMp4 = selectedMp4,
             selectedOsd = selectedOsd,
             selectedSrt = selectedSrt,
@@ -131,6 +146,41 @@ class AppStateHolder(
             bitmap = if (mp4Changed) null else state.bitmap,
             selectedFrame = if (mp4Changed) 0.0f else state.selectedFrame
         )
+    }
+
+    fun onFolderPicked(path: Path?) {
+        if (path == null) return
+        try {
+            val scanned = clipScanner.scan(path, probeVideo)
+            val enriched = scanned.copy(entries = scanned.entries.map { entry ->
+                entry.copy(info = parseCompanions(entry.info))
+            })
+            state = state.copy(
+                clipList = enriched,
+                clipFolderError = null,
+                selectedMp4 = null,
+                selectedOsd = null,
+                selectedSrt = null,
+                osd = null,
+                isParsingOsd = false,
+                osdError = null,
+                videoInfo = null,
+                videoError = null,
+                bitmap = null,
+                selectedFrame = 0.0f,
+                srt = null,
+                isParsingSrt = false,
+                srtError = null,
+            )
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger.error(exception) { "Failed to scan clip folder $path" }
+            state = state.copy(
+                clipList = null,
+                clipFolderError = exception.message ?: uiText(Res.string.error_video_unreadable),
+            )
+        }
     }
 
     fun onFontFilePickerClosed(path: Path?) {
@@ -322,7 +372,41 @@ class AppStateHolder(
         setSrtOptions(state.srtOptions.copy(xPercent = 1.5f, yPercent = 95f, scale = 35f))
     }
 
+    fun moveClipUp(id: String) = updateClipList { it.movedUp(id) }
+
+    fun moveClipDown(id: String) = updateClipList { it.movedDown(id) }
+
+    fun setClipExcluded(id: String, excluded: Boolean) = updateClipList { it.withExcluded(id, excluded) }
+
+    fun restoreClipOrder() = updateClipList { it.restoredAz() }
+
+    fun canStartBurn(): Boolean {
+        if (state.isBurning) return false
+        val list = state.clipList
+        if (list != null) {
+            return list.canBurn() && state.font != null && list.included().all { it.info.osd != null }
+        }
+        return state.osd != null && state.videoInfo != null && state.font != null && state.selectedMp4 != null
+    }
+
+    fun suggestedOutputName(): String {
+        val list = state.clipList
+        if (list != null) return "${list.outputStem() ?: "joined"}.mp4"
+        val mp4 = state.selectedMp4 ?: return ""
+        return outputNameFor(mp4)
+    }
+
+    private fun updateClipList(transform: (ClipList) -> ClipList) {
+        if (state.isBurning) return
+        val list = state.clipList ?: return
+        state = state.copy(clipList = transform(list))
+    }
+
     fun startBurn(output: Path) {
+        if (state.clipList != null) {
+            startFolderBurn(output)
+            return
+        }
         if (state.isBurning) return
         val mp4 = state.selectedMp4 ?: return
         val videoInfo = state.videoInfo ?: return
@@ -390,6 +474,81 @@ class AppStateHolder(
         }
     }
 
+    private fun startFolderBurn(output: Path) {
+        if (state.isBurning) return
+        val list = state.clipList ?: return
+        val font = state.font ?: return
+        val settings = BurnSettings(
+            codec = state.burnCodec,
+            bitrateMbps = state.burnBitrateMbps,
+            encoder = state.burnEncoder,
+            offsetX = state.osdOffsetX,
+            offsetY = state.osdOffsetY,
+            adjustPlaybackSpeed = state.adjustOsdPlaybackSpeed,
+        )
+        val generation = ++burnGeneration
+        state = state.copy(isBurning = true, burnProgress = 0f, burnMessage = uiText(Res.string.burn_starting), burnError = null)
+        burnJob = scope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    val burnScope = this
+                    val prepared = list.included().map { entry ->
+                        val info = entry.info
+                        val videoInfo = info.videoInfo
+                            ?: throw VideoBurnException(info.probeError ?: uiText(Res.string.error_video_unreadable))
+                        val osd = info.osd
+                            ?: throw VideoBurnException(info.osdError ?: uiText(Res.string.burn_multiclip_no_osd))
+                        PreparedClip(
+                            video = info.files.video,
+                            videoInfo = videoInfo,
+                            osd = osd,
+                            srt = info.srt,
+                        )
+                    }
+                    MultiClipBurner(FfmpegLocator().locateFor(settings.codec)).burn(
+                        clips = prepared,
+                        font = font,
+                        settings = settings,
+                        output = output,
+                        onProgress = { progress -> publishBurn(generation, progress.fraction, progress.message) },
+                        onPreviewFrame = { frame -> publishPreview(generation, frame) },
+                        isCancelled = { !burnScope.isActive },
+                        srtOptions = state.srtOptions,
+                    )
+                }
+                SwingUtilities.invokeLater {
+                    if (generation != burnGeneration) return@invokeLater
+                    val saved = if (result.usedSoftwareFallback) {
+                        uiText(Res.string.burn_saved_software_fallback, result.output.fileName, result.encoderName)
+                    } else {
+                        uiText(Res.string.burn_saved, result.output.fileName, result.encoderName)
+                    }
+                    state = state.copy(
+                        isBurning = false,
+                        burnProgress = 1f,
+                        burnMessage = saved,
+                        burnError = null,
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                SwingUtilities.invokeLater {
+                    if (generation != burnGeneration) return@invokeLater
+                    state = state.copy(isBurning = false, burnMessage = uiText(Res.string.burn_cancelled), burnError = null)
+                }
+            } catch (failure: Exception) {
+                logger.error(failure) { "Burn failed" }
+                SwingUtilities.invokeLater {
+                    if (generation != burnGeneration) return@invokeLater
+                    state = state.copy(
+                        isBurning = false,
+                        burnError = failure.message ?: uiText(Res.string.burn_failed),
+                        burnMessage = null,
+                    )
+                }
+            }
+        }
+    }
+
     fun cancelBurn() {
         burnGeneration += 1
         burnJob?.cancel()
@@ -403,6 +562,13 @@ class AppStateHolder(
         SwingUtilities.invokeLater {
             if (generation != burnGeneration || !state.isBurning) return@invokeLater
             state = state.copy(burnProgress = fraction, burnMessage = message)
+        }
+    }
+
+    private fun publishPreview(generation: Int, image: BufferedImage) {
+        SwingUtilities.invokeLater {
+            if (generation != burnGeneration || !state.isBurning) return@invokeLater
+            state = state.copy(bitmap = image.toComposeImageBitmap())
         }
     }
 
@@ -446,6 +612,26 @@ class AppStateHolder(
     private fun rerenderCurrentFrame() {
         if (state.selectedMp4 == null || state.videoInfo == null || state.osd == null || state.font == null) return
         onFrameSelected(state.selectedFrame)
+    }
+
+    private fun parseCompanions(info: ClipInfo): ClipInfo {
+        val withOsd = info.files.osd?.let { path ->
+            try {
+                info.copy(osd = osdParser.parse(path), osdError = null)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                info.copy(osd = null, osdError = exception.message ?: uiText(Res.string.error_osd_unreadable))
+            }
+        } ?: info
+        val srtPath = withOsd.files.srt ?: return withOsd
+        return try {
+            withOsd.copy(srt = srtParser.parse(srtPath), srtError = null)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            withOsd.copy(srt = null, srtError = exception.message ?: uiText(Res.string.error_srt_unreadable))
+        }
     }
 
     override fun close() {
