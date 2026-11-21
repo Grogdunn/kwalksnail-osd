@@ -9,6 +9,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
 import java.io.FilenameFilter
+import java.nio.file.Files
 import java.nio.file.Path
 import javax.swing.JFileChooser
 import javax.swing.JList
@@ -41,6 +42,7 @@ fun desktopFileDialog(
 fun desktopSaveDialog(
     suggestedName: String,
     title: String,
+    defaultExtension: String? = "mp4",
     onCloseRequest: (result: Path?) -> Unit
 ) {
     val fileDialog = FileDialog(null as Frame?, title, FileDialog.SAVE).apply {
@@ -54,7 +56,38 @@ fun desktopSaveDialog(
         return
     }
     val path = Path.of(directory, selected)
-    onCloseRequest(if (path.extension.equals("mp4", ignoreCase = true)) path else Path.of("$path.mp4"))
+    val resolved = when {
+        defaultExtension == null -> path
+        path.extension.equals(defaultExtension, ignoreCase = true) -> path
+        else -> Path.of("$path.$defaultExtension")
+    }
+    onCloseRequest(resolved)
+}
+
+fun desktopPngSequenceDialog(
+    suggestedName: String,
+    title: String,
+    onCloseRequest: (result: Path?) -> Unit,
+) {
+    val chooser = JFileChooser().apply {
+        dialogTitle = title
+        fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+        dialogType = JFileChooser.SAVE_DIALOG
+        selectedFile = File(suggestedName)
+    }
+    val selected = if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) chooser.selectedFile else null
+    if (selected == null) {
+        onCloseRequest(null)
+        return
+    }
+    val path = selected.toPath()
+    val name = path.fileName?.toString().orEmpty()
+    val output = when {
+        name.equals(suggestedName, ignoreCase = true) -> path
+        Files.exists(path) -> path.resolve(suggestedName)
+        else -> path
+    }
+    onCloseRequest(output)
 }
 
 fun desktopFolderDialog(

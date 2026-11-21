@@ -21,6 +21,7 @@ import dev.grogdunn.kwalksnailosd.generated.resources.error_font_unreadable
 import dev.grogdunn.kwalksnailosd.generated.resources.error_osd_unreadable
 import dev.grogdunn.kwalksnailosd.generated.resources.error_srt_unreadable
 import dev.grogdunn.kwalksnailosd.generated.resources.error_video_unreadable
+import dev.grogdunn.kwalksnailosd.generated.resources.osd_export_png_no_space
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.osd.OsdParser
 import dev.grogdunn.kwalksnailosd.osd.OsdRenderer
@@ -43,7 +44,13 @@ import dev.grogdunn.kwalksnailosd.video.HardwareEncoderCatalog
 import dev.grogdunn.kwalksnailosd.video.HardwareKind
 import dev.grogdunn.kwalksnailosd.video.VideoBurnException
 import dev.grogdunn.kwalksnailosd.video.VideoBurner
+import dev.grogdunn.kwalksnailosd.video.DiskSpaceCheck
+import dev.grogdunn.kwalksnailosd.video.OsdExportMode
+import dev.grogdunn.kwalksnailosd.video.OsdExportSettings
+import dev.grogdunn.kwalksnailosd.video.OsdExporter
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
+import dev.grogdunn.kwalksnailosd.video.checkPngDiskSpace
+import dev.grogdunn.kwalksnailosd.video.estimatePngSequenceBytes
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import dev.grogdunn.kwalksnailosd.video.VideoParser
 import dev.grogdunn.kwalksnailosd.video.outputNameFor
@@ -57,10 +64,12 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.awt.Color
 import java.awt.image.BufferedImage
 import java.nio.file.Path
 import javax.swing.SwingUtilities
 import kotlin.io.path.extension
+import kotlin.io.path.nameWithoutExtension
 import kotlin.math.roundToInt
 
 data class AppUiState(
@@ -98,6 +107,8 @@ data class AppUiState(
     val srtOptions: SrtOptions = SrtOptions(),
     val clipList: ClipList? = null,
     val clipFolderError: String? = null,
+    val osdExportMode: OsdExportMode? = null,
+    val osdChromaColor: Int = 0xFFFF00FF.toInt(),
 )
 
 class AppStateHolder(
@@ -107,6 +118,8 @@ class AppStateHolder(
     private val videoParser: VideoParser = VideoParser(),
     private val clipScanner: ClipFolderScanner = ClipFolderScanner(),
     private val probeVideo: (Path) -> VideoInfo = { videoParser.getVideoInfo(it) },
+    private val pngRequiredBytes: (VideoInfo) -> Long = ::defaultPngRequiredBytes,
+    private val pngDiskSpace: (Path, Long) -> DiskSpaceCheck = ::checkPngDiskSpace,
 ) : AutoCloseable {
     private val logger = KotlinLogging.logger {}
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -325,6 +338,16 @@ class AppStateHolder(
         state = state.copy(burnEncoder = preference)
     }
 
+    fun setOsdExportMode(mode: OsdExportMode?) {
+        if (state.isBurning) return
+        state = state.copy(osdExportMode = mode)
+    }
+
+    fun setOsdChromaColor(argb: Int) {
+        if (state.isBurning) return
+        state = state.copy(osdChromaColor = argb)
+    }
+
     fun refreshBurnEncoders() {
         val codec = state.burnCodec
         val generation = ++encoderProbeGeneration
@@ -382,6 +405,30 @@ class AppStateHolder(
 
     fun restoreClipOrder() = updateClipList { it.restoredAz() }
 
+    fun canStartOsdExport(): Boolean {
+        if (state.isBurning || state.osdExportMode == null || state.font == null) return false
+        return osdExportSource() != null
+    }
+
+    fun estimatedPngSequenceBytes(): Long? {
+        val info = osdExportVideoInfo() ?: return null
+        return pngRequiredBytes(info)
+    }
+
+    fun pngExportSpace(output: Path): DiskSpaceCheck? {
+        val required = estimatedPngSequenceBytes() ?: return null
+        return pngDiskSpace(output, required)
+    }
+
+    fun osdExportVideoInfo(): VideoInfo? = osdExportSource()?.videoInfo
+
+    fun osdExportDefaultExtension(): String? = when (state.osdExportMode) {
+        OsdExportMode.ChromaKey -> "mp4"
+        OsdExportMode.ProRes4444 -> "mov"
+        OsdExportMode.Vp9Alpha -> "webm"
+        else -> null
+    }
+
     fun canStartBurn(): Boolean {
         if (state.isBurning) return false
         val list = state.clipList
@@ -396,6 +443,42 @@ class AppStateHolder(
         if (list != null) return "${list.outputStem() ?: "joined"}.mp4"
         val mp4 = state.selectedMp4 ?: return ""
         return outputNameFor(mp4)
+    }
+
+    fun suggestedOsdExportName(): String {
+        val stem = osdExportStem() ?: return ""
+        return when (state.osdExportMode) {
+            OsdExportMode.ChromaKey -> "${stem}_osd_chroma.mp4"
+            OsdExportMode.ProRes4444 -> "${stem}_osd.mov"
+            OsdExportMode.Vp9Alpha -> "${stem}_osd.webm"
+            OsdExportMode.PngSequence -> "${stem}_osd_png"
+            null -> ""
+        }
+    }
+
+    private fun osdExportStem(): String? {
+        val list = state.clipList
+        if (list != null) return list.included().firstOrNull()?.info?.files?.baseName
+        return state.selectedMp4?.nameWithoutExtension
+    }
+
+    private fun osdExportSource(): OsdExportSource? {
+        val list = state.clipList
+        if (list != null) {
+            val info = list.included().firstOrNull()?.info ?: return null
+            val videoInfo = info.videoInfo ?: return null
+            val osd = info.osd ?: return null
+            return OsdExportSource(videoInfo, osd, info.srt)
+        }
+        val videoInfo = state.videoInfo ?: return null
+        val osd = state.osd ?: return null
+        return OsdExportSource(videoInfo, osd, state.srt)
+    }
+
+    private fun ffmpegForOsdExport(settings: OsdExportSettings): Path {
+        if (settings.mode == OsdExportMode.PngSequence) return Path.of("png")
+        val codec = if (settings.mode == OsdExportMode.ChromaKey) settings.codec else VideoCodec.H264
+        return FfmpegLocator().locateFor(codec)
     }
 
     private fun updateClipList(transform: (ClipList) -> ClipList) {
@@ -551,6 +634,93 @@ class AppStateHolder(
         }
     }
 
+    fun startOsdExport(output: Path) {
+        if (state.isBurning) return
+        val mode = state.osdExportMode ?: return
+        val source = osdExportSource() ?: return
+        val font = state.font ?: return
+        if (mode == OsdExportMode.PngSequence) {
+            val space = pngDiskSpace(output, pngRequiredBytes(source.videoInfo))
+            if (!space.enough) {
+                state = state.copy(
+                    isBurning = false,
+                    burnProgress = 0f,
+                    burnMessage = null,
+                    burnError = uiText(
+                        Res.string.osd_export_png_no_space,
+                        space.requiredBytes.toString(),
+                        space.availableBytes.toString(),
+                    ),
+                )
+                return
+            }
+        }
+        val settings = OsdExportSettings(
+            mode = mode,
+            chromaColor = Color(state.osdChromaColor, true),
+            offsetX = state.osdOffsetX,
+            offsetY = state.osdOffsetY,
+            adjustPlaybackSpeed = state.adjustOsdPlaybackSpeed,
+            codec = state.burnCodec,
+            bitrateMbps = state.burnBitrateMbps,
+            encoder = state.burnEncoder,
+        )
+        val srt = source.srt
+        val srtOptions = state.srtOptions
+        val videoInfo = source.videoInfo
+        val osd = source.osd
+        val generation = ++burnGeneration
+        state = state.copy(isBurning = true, burnProgress = 0f, burnMessage = uiText(Res.string.burn_starting), burnError = null)
+        burnJob = scope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    val exportScope = this
+                    OsdExporter(ffmpegForOsdExport(settings)).export(
+                        videoInfo = videoInfo,
+                        osd = osd,
+                        font = font,
+                        settings = settings,
+                        output = output,
+                        onProgress = { progress -> publishBurn(generation, progress.fraction, progress.message) },
+                        onPreviewFrame = { frame -> publishPreview(generation, frame) },
+                        isCancelled = { !exportScope.isActive },
+                        srt = srt,
+                        srtOptions = srtOptions,
+                    )
+                }
+                SwingUtilities.invokeLater {
+                    if (generation != burnGeneration) return@invokeLater
+                    val saved = if (result.usedSoftwareFallback) {
+                        uiText(Res.string.burn_saved_software_fallback, result.output.fileName, result.encoderName)
+                    } else {
+                        uiText(Res.string.burn_saved, result.output.fileName, result.encoderName)
+                    }
+                    state = state.copy(
+                        isBurning = false,
+                        burnProgress = 1f,
+                        burnMessage = saved,
+                        burnError = null,
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                SwingUtilities.invokeLater {
+                    if (generation != burnGeneration) return@invokeLater
+                    state = state.copy(isBurning = false, burnMessage = uiText(Res.string.burn_cancelled), burnError = null)
+                }
+            } catch (failure: Exception) {
+                logger.error(failure) { "OSD export failed" }
+                SwingUtilities.invokeLater {
+                    if (generation != burnGeneration) return@invokeLater
+                    state = state.copy(
+                        isBurning = false,
+                        burnError = failure.message ?: uiText(Res.string.burn_failed),
+                        burnMessage = null,
+                    )
+                }
+            }
+        }
+    }
+
     fun cancelBurn() {
         burnGeneration += 1
         burnJob?.cancel()
@@ -651,4 +821,19 @@ class AppStateHolder(
         scope.cancel()
         videoParser.close()
     }
+}
+
+private data class OsdExportSource(
+    val videoInfo: VideoInfo,
+    val osd: Osd,
+    val srt: SrtFile?,
+)
+
+private fun defaultPngRequiredBytes(info: VideoInfo): Long {
+    val frames = if (info.frameNumber > 0) {
+        info.frameNumber
+    } else {
+        (info.duration.toMillis() / 1000.0 * info.frameRate).roundToInt().coerceAtLeast(1)
+    }
+    return estimatePngSequenceBytes(info.width, info.height, frames)
 }

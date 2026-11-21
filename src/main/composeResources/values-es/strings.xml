@@ -175,6 +175,21 @@
     <string name="osd_export_missing_encoder">ffmpeg no tiene el codificador %1$s. La exportación solo OSD lo necesita para este modo.</string>
     <string name="osd_export_png_no_space">No hay espacio en disco para la secuencia PNG: se necesitan %1$s bytes, disponibles %2$s.</string>
     <string name="osd_export_progress">Exportación OSD fotograma %1$d / %2$d · %3$s</string>
+    <string name="osd_export_mode">Modo</string>
+    <string name="osd_export_mode_burn">Burn</string>
+    <string name="osd_export_mode_chroma">Chroma key</string>
+    <string name="osd_export_mode_prores">ProRes 4444</string>
+    <string name="osd_export_mode_vp9">VP9 con alfa</string>
+    <string name="osd_export_mode_png">Secuencia PNG</string>
+    <string name="osd_export_button">Exportar OSD</string>
+    <string name="osd_export_choose_color">Elegir color…</string>
+    <string name="osd_export_choose_color_title">Elegir color chroma</string>
+    <string name="osd_export_png_estimate">Tamaño estimado: %1$s</string>
+    <string name="dialog_save_osd">Guardar exportación OSD</string>
+    <string name="dialog_save_osd_png">Elegir carpeta de la secuencia PNG</string>
+    <string name="osd_export_png_no_space_title">Espacio en disco insuficiente</string>
+    <string name="osd_export_png_confirm_title">Confirmar exportación PNG</string>
+    <string name="osd_export_png_confirm">La secuencia PNG necesita unos %1$s (%2$s bytes). Libres %3$s (%4$s bytes). ¿Continuar?</string>
 
     <plurals name="srt_cues_with_distance">
         <item quantity="one">%1$d cue, con distancia</item>
