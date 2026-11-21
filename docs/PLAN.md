@@ -5,11 +5,11 @@ Tick the boxes as each part lands.
 
 ## 1. Prerequisites
 
-- [ ] Case-insensitive file extensions in `lookupFiles` (`.MP4`, `.Osd`, `.SRT`, ...).
-- [ ] Close the `Files.list` stream (`use {}`).
-- [ ] Faster OSD and SRT lookup per frame: no linear `findLast` per frame (binary search on the sorted timestamps or a moving index).
-- [ ] Show a localized error in the UI (en/it/es/de/fr) when a video can't be read, instead of crashing or failing silently.
-- [ ] Unit tests for the lookup and the extensions.
+- [x] Case-insensitive file extensions in `lookupFiles` (`.MP4`, `.Osd`, `.SRT`, ...).
+- [x] Close the `Files.list` stream (`use {}`).
+- [x] Faster OSD and SRT lookup per frame: no linear `findLast` per frame (binary search on the sorted timestamps or a moving index).
+- [x] Show a localized error in the UI (en/it/es/de/fr) when a video can't be read, instead of crashing or failing silently.
+- [x] Unit tests for the lookup and the extensions.
 
 ## 2. New SRT formats
 
@@ -23,8 +23,8 @@ Upstream: [avsaase/walksnail-osd-tool](https://github.com/avsaase/walksnail-osd-
 
 Scanner and list:
 
-- [ ] Scan a folder and group video, `.osd` and `.srt` files by base name.
-- [ ] Default order: lexicographic by name.
+- [x] Scan a folder and group video, `.osd` and `.srt` files by base name.
+- [x] Default order: lexicographic by name.
 - [ ] Reorder with a drag handle and with up/down buttons.
 - [ ] "Restore A→Z" button.
 - [ ] Per-clip "exclude" checkbox.
