@@ -86,7 +86,15 @@ Upstream: [avsaase/walksnail-osd-tool](https://github.com/avsaase/walksnail-osd-
 
 ## 2. Per-clip OSD offset
 
-- [ ] Offset configurable per clip in the clip list (multi-clip burn).
+Branch `feature/per-clip-osd-offset`.
+
+- [x] Optional own OSD offset per clip in the clip list ("Own OSD offset", X/Y nudges −10/−1/+1/+10); clips without it use the global offset.
+- [x] Applied to the joined burn and to batch mode.
+- [x] Offset survives reorder, exclude and "Restore A→Z".
+- [x] Clip preview in folder/multi-file mode (click the name or "Preview"); the preview shows that clip's effective offset and its own SRT.
+- [x] Export controls (global offset, encoder, bitrate) are usable in folder/multi-file mode (they were disabled without a single video).
+- [x] UI strings in all 5 languages (en/it/es/de/fr).
+- [x] Tests: model, burners (real ffmpeg: clip 2 OSD shifted), holder.
 
 ## 3. Automatic scale/pad
 
