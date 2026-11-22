@@ -8,6 +8,7 @@ import dev.grogdunn.kwalksnailosd.osd.font.FontType
 import dev.grogdunn.kwalksnailosd.video.BurnEncoderPreference
 import dev.grogdunn.kwalksnailosd.video.BurnSettings
 import dev.grogdunn.kwalksnailosd.video.FfmpegEncoders
+import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.FfmpegLocator
 import dev.grogdunn.kwalksnailosd.video.VideoBurner
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
@@ -102,6 +103,33 @@ class MultiClipBurnTest {
             )
         }
         assertFalse(output.exists())
+    }
+
+    @Test
+    fun secondClipOffsetShiftsItsTileWhileTheFirstKeepsTheGlobalOrigin() {
+        val ffmpeg = FfmpegLocator().locateFor(VideoCodec.H264)
+        val directory = createTempDirectory("multiclip-offset")
+        val gridX = 1
+        val tile = CharacterSize.LARGE
+        val first = preparedClip(ffmpeg, directory, "one", withAudio = true, gridX = gridX)
+        val second = preparedClip(ffmpeg, directory, "two", withAudio = false, gridX = gridX)
+            .copy(offset = OsdOffset(tile.width * 2, 0))
+        val output = directory.resolve("joined.mp4")
+
+        MultiClipBurner(ffmpeg).burn(
+            clips = listOf(first, second),
+            font = magentaFont(),
+            settings = softwareSettings(),
+            output = output,
+        )
+
+        val early = extractFrameAt(ffmpeg, output, seconds = 0.1, directory.resolve("early.png"))
+        val late = extractFrameAt(ffmpeg, output, seconds = 1.2, directory.resolve("late.png"))
+        val original = tileOrigin(gridX = gridX, gridY = 0, tile = tile)
+        val shifted = tileOrigin(gridX = gridX + 2, gridY = 0, tile = tile)
+        assertMagentaTile(early, original, tile)
+        assertMagentaTile(late, shifted, tile)
+        assertNotMagenta(late, original, tile)
     }
 }
 
