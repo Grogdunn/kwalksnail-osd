@@ -64,8 +64,16 @@ class VideoBurner(
         srtOptions: SrtOptions = SrtOptions(),
         onPreviewFrame: ((BufferedImage) -> Unit)? = null,
         copyAudio: Boolean? = null,
+        scaleTo: VideoSize? = null,
     ): BurnResult {
-        validate(input, output, videoInfo, osd, settings)
+        val effective = if (
+            scaleTo != null && (scaleTo.width != videoInfo.width || scaleTo.height != videoInfo.height)
+        ) {
+            videoInfo.copy(width = scaleTo.width, height = scaleTo.height)
+        } else {
+            videoInfo
+        }
+        validate(input, output, effective, osd, settings)
         val speedFactor = osdPlaybackSpeedFactor(videoInfo.duration, osd.duration, settings.adjustPlaybackSpeed)
         val selection = catalog.resolve(settings.codec, settings.encoder)
         val initialNote = selection.fallbackNote
@@ -83,10 +91,11 @@ class VideoBurner(
                 fallback = selection.softwareFallback,
                 encode = { recipe ->
                     encode(
-                        input, output, videoInfo, osd, font, settings, recipe, speedFactor,
+                        input, output, effective, osd, font, settings, recipe, speedFactor,
                         usedSoftwareFallback = fallbackDetail != null,
                         onProgress, isCancelled, srt, srtOptions,
                         onPreviewFrame, copyAudio ?: videoInfo.hasAudio,
+                        scaleTo = if (effective === videoInfo) null else scaleTo,
                     )
                 },
                 onFallback = { failed, next, error ->
@@ -123,13 +132,14 @@ class VideoBurner(
         srtOptions: SrtOptions,
         onPreviewFrame: ((BufferedImage) -> Unit)?,
         copyAudio: Boolean,
+        scaleTo: VideoSize? = null,
     ): BurnResult {
         throwIfCancelled(isCancelled)
         val width = videoInfo.width
         val height = videoInfo.height
         val frameBytes = width * height * 3
         val expectedFrames = expectedFrameCount(videoInfo)
-        val decoder = startDecoder(input, expectedFrames)
+        val decoder = startDecoder(input, expectedFrames, scaleTo)
         val decoderErrors = collectStderr(decoder)
         val encoderProcess = startEncoder(input, output, videoInfo, encoder, settings.bitrateMbps, copyAudio)
         discardStdout(encoderProcess)
@@ -221,7 +231,7 @@ class VideoBurner(
         return image
     }
 
-    private fun startDecoder(input: Path, frames: Int): Process {
+    private fun startDecoder(input: Path, frames: Int, scaleTo: VideoSize? = null): Process {
         val command = mutableListOf(
             ffmpeg.toString(),
             "-nostdin",
@@ -236,6 +246,14 @@ class VideoBurner(
         )
         if (frames > 0) {
             command += listOf("-frames:v", frames.toString())
+        }
+        if (scaleTo != null) {
+            val w = scaleTo.width
+            val h = scaleTo.height
+            command += listOf(
+                "-vf",
+                "scale=$w:$h:force_original_aspect_ratio=decrease,pad=$w:$h:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1",
+            )
         }
         command += listOf("-f", "rawvideo", "-pix_fmt", "bgr24", "-")
         return startProcess(command)

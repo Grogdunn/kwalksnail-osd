@@ -10,6 +10,8 @@ enum class VideoCodec(val label: String) {
 
 data class OsdOffset(val x: Int, val y: Int)
 
+data class VideoSize(val width: Int, val height: Int)
+
 data class BurnSettings(
     val codec: VideoCodec,
     val bitrateMbps: Int,
