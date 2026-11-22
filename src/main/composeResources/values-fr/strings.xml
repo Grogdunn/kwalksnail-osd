@@ -46,6 +46,8 @@
     <string name="clips_mismatch_resolution">Les clips inclus n'ont pas la même résolution.</string>
     <string name="clips_mismatch_fps">Les clips inclus n'ont pas la même fréquence d'images.</string>
     <string name="clips_mismatch_both">Les clips inclus n'ont pas la même résolution ni la même fréquence d'images.</string>
+    <string name="clips_adapt_resolution">Adapter les résolutions différentes</string>
+    <string name="clips_adapt_info">Les clips seront mis à l'échelle avec des bandes noires vers %1$d×%2$d (premier clip).</string>
     <string name="clips_move_up">Monter</string>
     <string name="clips_move_down">Descendre</string>
     <string name="clips_drag_handle">Glisser pour réordonner</string>
