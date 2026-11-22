@@ -3,6 +3,7 @@ package dev.grogdunn.kwalksnailosd.clip
 import dev.grogdunn.kwalksnailosd.osd.FcFirmware
 import dev.grogdunn.kwalksnailosd.osd.Frame
 import dev.grogdunn.kwalksnailosd.osd.Osd
+import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import java.nio.file.Path
 import java.time.Duration
@@ -135,6 +136,28 @@ class ClipListTest {
     }
 
     private fun parsedOsd(): Osd = Osd(FcFirmware.BETAFLIGHT, listOf(Frame(0, emptyList())), Duration.ofMillis(1))
+
+    @Test
+    fun offsetCanBeSetClearedAndSurvivesReorderExcludeAndRestore() {
+        val alpha = entry("Alpha")
+        val beta = entry("Beta")
+        val list = clipList(alpha, beta)
+        val shifted = OsdOffset(5, 7)
+        val global = OsdOffset(1, 2)
+
+        val withOffset = list.withOffset(beta.id, shifted)
+        assertEquals(shifted, withOffset.entries[1].offset)
+        assertNull(withOffset.entries[0].offset)
+        assertEquals(shifted, withOffset.effectiveOffset(beta.id, global))
+        assertEquals(global, withOffset.effectiveOffset(alpha.id, global))
+        assertEquals(global, list.effectiveOffset("missing", global))
+        assertEquals(list, list.withOffset("missing", shifted))
+
+        assertNull(withOffset.withOffset(beta.id, null).entries[1].offset)
+        val kept = withOffset.movedUp(beta.id).movedDown(beta.id).withExcluded(beta.id, true).restoredAz()
+        assertEquals(shifted, kept.entries.first { it.id == beta.id }.offset)
+        assertTrue(kept.entries.first { it.id == beta.id }.excluded)
+    }
 
     @Test
     fun outputStemUsesFirstIncludedBaseNameAfterReorder() {

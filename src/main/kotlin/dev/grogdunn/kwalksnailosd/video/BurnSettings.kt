@@ -8,6 +8,8 @@ enum class VideoCodec(val label: String) {
     H265("H.265"),
 }
 
+data class OsdOffset(val x: Int, val y: Int)
+
 data class BurnSettings(
     val codec: VideoCodec,
     val bitrateMbps: Int,
@@ -16,6 +18,9 @@ data class BurnSettings(
     val offsetY: Int,
     val adjustPlaybackSpeed: Boolean,
 )
+
+fun BurnSettings.withOffset(offset: OsdOffset?): BurnSettings =
+    if (offset == null) this else copy(offsetX = offset.x, offsetY = offset.y)
 
 data class BurnProgress(val fraction: Float, val message: String)
 

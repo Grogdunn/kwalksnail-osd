@@ -17,6 +17,8 @@ import dev.grogdunn.kwalksnailosd.uiText
 import dev.grogdunn.kwalksnailosd.video.BurnProgress
 import dev.grogdunn.kwalksnailosd.video.BurnResult
 import dev.grogdunn.kwalksnailosd.video.BurnSettings
+import dev.grogdunn.kwalksnailosd.video.OsdOffset
+import dev.grogdunn.kwalksnailosd.video.withOffset
 import dev.grogdunn.kwalksnailosd.video.VideoBurnException
 import dev.grogdunn.kwalksnailosd.video.VideoBurner
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
@@ -39,6 +41,7 @@ data class PreparedClip(
     val videoInfo: VideoInfo,
     val osd: Osd,
     val srt: SrtFile? = null,
+    val offset: OsdOffset? = null,
 )
 
 class MultiClipBurner(
@@ -72,7 +75,7 @@ class MultiClipBurner(
                     videoInfo = clip.videoInfo,
                     osd = clip.osd,
                     font = font,
-                    settings = settings,
+                    settings = settings.withOffset(clip.offset),
                     onProgress = { progress ->
                         val fraction = overallFraction(index, clips.size, progress.fraction)
                         onProgress(BurnProgress(fraction, progressMessage(index + 1, clips.size, fraction, started)))

@@ -13,9 +13,11 @@ import dev.grogdunn.kwalksnailosd.uiText
 import dev.grogdunn.kwalksnailosd.video.BurnProgress
 import dev.grogdunn.kwalksnailosd.video.BurnResult
 import dev.grogdunn.kwalksnailosd.video.BurnSettings
+import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.VideoBurner
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import dev.grogdunn.kwalksnailosd.video.outputNameFor
+import dev.grogdunn.kwalksnailosd.video.withOffset
 import java.awt.image.BufferedImage
 import java.nio.file.Files
 import java.nio.file.Path
@@ -49,6 +51,7 @@ data class BatchJob(
     val osd: Osd?,
     val srt: SrtFile?,
     val preflightError: String? = null,
+    val offset: OsdOffset? = null,
 )
 
 sealed interface BatchJobState {
@@ -104,7 +107,7 @@ class BatchBurner(
                 val result = burnOne(
                     job,
                     font,
-                    settings,
+                    settings.withOffset(job.offset),
                     srtOptions,
                     { progress -> emit(job.id, BatchJobState.Running(progress.fraction, progress.message)) },
                     onPreviewFrame,

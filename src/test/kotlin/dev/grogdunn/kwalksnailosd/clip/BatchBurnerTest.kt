@@ -8,6 +8,7 @@ import dev.grogdunn.kwalksnailosd.uiText
 import dev.grogdunn.kwalksnailosd.video.BurnProgress
 import dev.grogdunn.kwalksnailosd.video.BurnResult
 import dev.grogdunn.kwalksnailosd.video.FfmpegLocator
+import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import java.nio.file.Files
@@ -188,6 +189,24 @@ class BatchBurnerTest {
         assertTrue(Files.size(outputs[1]) > 0)
         assertTrue(firstBytes.contentEquals(Files.readAllBytes(first.video)))
         assertTrue(secondBytes.contentEquals(Files.readAllBytes(second.video)))
+    }
+
+    @Test
+    fun perJobOffsetOverridesGlobalAndNullKeepsGlobal() {
+        val recorded = mutableListOf<Triple<String, Int, Int>>()
+        val burner = BatchBurner { job, _, settings, _, _, _, _ ->
+            recorded += Triple(job.id, settings.offsetX, settings.offsetY)
+            doneResult(job.output)
+        }
+        val global = softwareSettings().copy(offsetX = 1, offsetY = 2)
+
+        burner.run(
+            jobs = listOf(job("1").copy(offset = OsdOffset(5, 7)), job("2")),
+            font = magentaFont(),
+            settings = global,
+        )
+
+        assertEquals(listOf(Triple("1", 5, 7), Triple("2", 1, 2)), recorded)
     }
 
     @Test
