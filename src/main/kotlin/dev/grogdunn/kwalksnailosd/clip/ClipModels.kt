@@ -4,6 +4,7 @@ import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.srt.SrtFile
 import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
+import dev.grogdunn.kwalksnailosd.video.VideoSize
 import java.nio.file.Path
 import java.time.Duration
 import kotlin.math.abs
@@ -60,10 +61,16 @@ data class ClipList(
         )
     }
 
-    fun highlighted(id: String): Boolean {
+    fun targetSize(): VideoSize? {
+        val info = included().firstNotNullOfOrNull { it.info.videoInfo } ?: return null
+        return VideoSize(info.width, info.height)
+    }
+
+    fun highlighted(id: String, adaptResolution: Boolean = false): Boolean {
         val info = included().find { it.id == id }?.info?.videoInfo ?: return false
         val reference = included().firstNotNullOfOrNull { it.info.videoInfo } ?: return false
-        return resolutionDiffers(info, reference) || fpsDiffers(info.frameRate, reference.frameRate)
+        val resolution = !adaptResolution && resolutionDiffers(info, reference)
+        return resolution || fpsDiffers(info.frameRate, reference.frameRate)
     }
 
     fun movedUp(id: String): ClipList = swapWithNeighbour(id, -1)
@@ -95,12 +102,12 @@ data class ClipList(
 
     fun outputStem(): String? = included().firstOrNull()?.info?.files?.baseName?.plus("_joined")
 
-    fun canBurn(): Boolean {
+    fun canBurn(adaptResolution: Boolean = false): Boolean {
         val included = included()
         if (included.isEmpty()) return false
         if (included.any { it.info.videoInfo == null || it.info.files.osd == null || it.info.osd == null }) return false
         val mismatch = mismatch()
-        return !mismatch.resolution && !mismatch.fps
+        return (adaptResolution || !mismatch.resolution) && !mismatch.fps
     }
 
     private fun swapWithNeighbour(id: String, offset: Int): ClipList {

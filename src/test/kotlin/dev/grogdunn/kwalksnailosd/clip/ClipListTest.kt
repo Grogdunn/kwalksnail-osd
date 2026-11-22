@@ -5,6 +5,7 @@ import dev.grogdunn.kwalksnailosd.osd.Frame
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
+import dev.grogdunn.kwalksnailosd.video.VideoSize
 import java.nio.file.Path
 import java.time.Duration
 import kotlin.test.Test
@@ -171,6 +172,29 @@ class ClipListTest {
         assertEquals(listOf("Gamma", "Alpha", "Beta"), gammaFirst.entries.map { it.info.files.baseName })
         assertEquals("Gamma_joined", gammaFirst.outputStem())
         assertNull(list.withExcluded(alpha.id, true).withExcluded(beta.id, true).withExcluded(gamma.id, true).outputStem())
+    }
+
+    @Test
+    fun targetSizeFollowsFirstIncludedClipAndAdaptResolutionIgnoresResolutionOnly() {
+        val alpha = entry("Alpha", videoInfo = info(width = 1920, height = 1080, frameRate = 30.0))
+        val beta = entry("Beta", videoInfo = info(width = 1280, height = 720, frameRate = 30.0))
+        val list = clipList(alpha, beta)
+
+        assertEquals(VideoSize(1920, 1080), list.targetSize())
+        assertEquals(VideoSize(1280, 720), list.withExcluded(alpha.id, true).targetSize())
+        assertEquals(VideoSize(1280, 720), list.movedUp(beta.id).targetSize())
+        assertNull(list.withExcluded(alpha.id, true).withExcluded(beta.id, true).targetSize())
+
+        assertFalse(list.canBurn())
+        assertTrue(list.canBurn(adaptResolution = true))
+        assertTrue(list.highlighted(beta.id))
+        assertFalse(list.highlighted(beta.id, adaptResolution = true))
+
+        val fps = entry("Gamma", videoInfo = info(width = 1280, height = 720, frameRate = 60.0))
+        val fpsList = clipList(alpha, fps)
+        assertFalse(fpsList.canBurn(adaptResolution = true))
+        assertTrue(fpsList.highlighted(fps.id, adaptResolution = true))
+        assertFalse(fpsList.highlighted(alpha.id, adaptResolution = true))
     }
 
     private fun clipList(vararg entries: ClipEntry, natural: List<String>? = null): ClipList {
