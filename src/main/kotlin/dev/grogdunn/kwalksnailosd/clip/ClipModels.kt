@@ -2,6 +2,7 @@ package dev.grogdunn.kwalksnailosd.clip
 
 import dev.grogdunn.kwalksnailosd.osd.Osd
 import dev.grogdunn.kwalksnailosd.srt.SrtFile
+import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import java.nio.file.Path
 import java.time.Duration
@@ -30,6 +31,7 @@ data class ClipEntry(
     val id: String,
     val info: ClipInfo,
     val excluded: Boolean = false,
+    val offset: OsdOffset? = null,
 )
 
 data class ClipMismatch(
@@ -73,6 +75,15 @@ data class ClipList(
             if (entry.id == id) entry.copy(excluded = excluded) else entry
         },
     )
+
+    fun withOffset(id: String, offset: OsdOffset?): ClipList = copy(
+        entries = entries.map { entry ->
+            if (entry.id == id) entry.copy(offset = offset) else entry
+        },
+    )
+
+    fun effectiveOffset(id: String, global: OsdOffset): OsdOffset =
+        entries.find { it.id == id }?.offset ?: global
 
     fun restoredAz(): ClipList {
         val byId = entries.associateBy { it.id }
