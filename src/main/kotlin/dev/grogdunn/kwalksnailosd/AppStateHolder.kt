@@ -63,6 +63,7 @@ import dev.grogdunn.kwalksnailosd.video.checkPngDiskSpace
 import dev.grogdunn.kwalksnailosd.video.estimatePngSequenceBytes
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import dev.grogdunn.kwalksnailosd.video.VideoParser
+import dev.grogdunn.kwalksnailosd.video.VideoSize
 import dev.grogdunn.kwalksnailosd.video.outputNameFor
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CancellationException
@@ -122,6 +123,7 @@ data class AppUiState(
     val osdChromaColor: Int = 0xFFFF00FF.toInt(),
     val batchMode: Boolean = false,
     val batchJobs: Map<String, BatchJobState> = emptyMap(),
+    val adaptResolution: Boolean = true,
 )
 
 class AppStateHolder(
@@ -482,6 +484,16 @@ class AppStateHolder(
         state = state.copy(batchMode = enabled, batchJobs = emptyMap(), burnMessage = null, burnError = null)
     }
 
+    fun setAdaptResolution(enabled: Boolean) {
+        if (state.isBurning) return
+        state = state.copy(adaptResolution = enabled)
+    }
+
+    internal fun joinTargetSize(): VideoSize? {
+        val list = state.clipList ?: return null
+        return if (state.adaptResolution && list.mismatch().resolution) list.targetSize() else null
+    }
+
     fun canStartBatch(): Boolean {
         if (state.isBurning || state.clipList == null || state.font == null) return false
         return state.clipList!!.included().any { it.info.videoInfo != null && it.info.osd != null }
@@ -492,7 +504,9 @@ class AppStateHolder(
         val list = state.clipList
         if (list != null && state.batchMode) return canStartBatch()
         if (list != null) {
-            return list.canBurn() && state.font != null && list.included().all { it.info.osd != null }
+            return list.canBurn(adaptResolution = state.adaptResolution) &&
+                state.font != null &&
+                list.included().all { it.info.osd != null }
         }
         return state.osd != null && state.videoInfo != null && state.font != null && state.selectedMp4 != null
     }
@@ -767,6 +781,7 @@ class AppStateHolder(
             offsetY = state.osdOffsetY,
             adjustPlaybackSpeed = state.adjustOsdPlaybackSpeed,
         )
+        val targetSize = joinTargetSize()
         val generation = ++burnGeneration
         state = state.copy(isBurning = true, burnProgress = 0f, burnMessage = uiText(Res.string.burn_starting), burnError = null)
         burnJob = scope.launch {
@@ -796,6 +811,7 @@ class AppStateHolder(
                         onPreviewFrame = { frame -> publishPreview(generation, frame) },
                         isCancelled = { !burnScope.isActive },
                         srtOptions = state.srtOptions,
+                        targetSize = targetSize,
                     )
                 }
                 SwingUtilities.invokeLater {

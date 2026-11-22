@@ -48,6 +48,8 @@ import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_done
 import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_failed
 import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_pending
 import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_running
+import dev.grogdunn.kwalksnailosd.generated.resources.clips_adapt_info
+import dev.grogdunn.kwalksnailosd.generated.resources.clips_adapt_resolution
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_batch_hint
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_column_duration
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_mode_batch
@@ -117,7 +119,20 @@ internal fun ClipListPanel(stateHolder: AppStateHolder) {
             text = stringResource(Res.string.clips_total_duration, formatDuration(clipList.totalDuration())),
             style = MaterialTheme.typography.caption,
         )
-        if (!state.batchMode) MismatchMessage(clipList)
+        if (!state.batchMode && clipList.mismatch().resolution) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Checkbox(
+                    checked = state.adaptResolution,
+                    onCheckedChange = stateHolder::setAdaptResolution,
+                    enabled = editsEnabled,
+                )
+                Text(
+                    text = stringResource(Res.string.clips_adapt_resolution),
+                    style = MaterialTheme.typography.body2,
+                )
+            }
+        }
+        if (!state.batchMode) MismatchMessage(clipList, state.adaptResolution)
         Text(
             text = listOf(
                 stringResource(Res.string.clips_column_resolution),
@@ -161,10 +176,20 @@ private fun ClipModeButton(label: String, selected: Boolean, enabled: Boolean, o
 }
 
 @Composable
-private fun MismatchMessage(clipList: ClipList) {
+private fun MismatchMessage(clipList: ClipList, adaptResolution: Boolean) {
     val mismatch = clipList.mismatch()
     if (!mismatch.resolution && !mismatch.fps) return
+    if (adaptResolution && mismatch.resolution && !mismatch.fps) {
+        val size = clipList.targetSize() ?: return
+        Text(
+            text = stringResource(Res.string.clips_adapt_info, size.width, size.height),
+            style = MaterialTheme.typography.caption,
+            color = Color.Gray,
+        )
+        return
+    }
     val message = when {
+        adaptResolution && mismatch.fps -> stringResource(Res.string.clips_mismatch_fps)
         mismatch.resolution && mismatch.fps -> stringResource(Res.string.clips_mismatch_both)
         mismatch.resolution -> stringResource(Res.string.clips_mismatch_resolution)
         else -> stringResource(Res.string.clips_mismatch_fps)
@@ -186,7 +211,8 @@ private fun ClipRow(
 ) {
     val info = entry.info
     val video = info.videoInfo
-    val highlighted = highlightMismatches && clipList.highlighted(entry.id)
+    val highlighted = highlightMismatches &&
+        clipList.highlighted(entry.id, adaptResolution = stateHolder.state.adaptResolution)
     val previewed = entry.id == stateHolder.state.previewClipId
     val canPreview = editsEnabled && video != null && info.osd != null
     val rowHeightPx = remember(entry.id) { mutableFloatStateOf(1f) }

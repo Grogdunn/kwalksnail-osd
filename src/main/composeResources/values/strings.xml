@@ -46,6 +46,8 @@
     <string name="clips_mismatch_resolution">Included clips do not share the same resolution.</string>
     <string name="clips_mismatch_fps">Included clips do not share the same frame rate.</string>
     <string name="clips_mismatch_both">Included clips do not share the same resolution or frame rate.</string>
+    <string name="clips_adapt_resolution">Adapt different resolutions</string>
+    <string name="clips_adapt_info">Clips will be scaled with black bars to %1$d×%2$d (first clip).</string>
     <string name="clips_move_up">Move up</string>
     <string name="clips_move_down">Move down</string>
     <string name="clips_drag_handle">Drag to reorder</string>

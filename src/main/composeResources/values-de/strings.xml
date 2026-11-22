@@ -46,6 +46,8 @@
     <string name="clips_mismatch_resolution">Die eingeschlossenen Clips haben nicht dieselbe Auflösung.</string>
     <string name="clips_mismatch_fps">Die eingeschlossenen Clips haben nicht dieselbe Bildrate.</string>
     <string name="clips_mismatch_both">Die eingeschlossenen Clips haben nicht dieselbe Auflösung oder Bildrate.</string>
+    <string name="clips_adapt_resolution">Unterschiedliche Auflösungen anpassen</string>
+    <string name="clips_adapt_info">Clips werden mit schwarzen Balken auf %1$d×%2$d skaliert (erster Clip).</string>
     <string name="clips_move_up">Nach oben</string>
     <string name="clips_move_down">Nach unten</string>
     <string name="clips_drag_handle">Ziehen zum Sortieren</string>
