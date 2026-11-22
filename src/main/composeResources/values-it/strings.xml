@@ -49,6 +49,10 @@
     <string name="clips_move_up">Sposta su</string>
     <string name="clips_move_down">Sposta giù</string>
     <string name="clips_drag_handle">Trascina per riordinare</string>
+    <string name="clips_preview">Anteprima</string>
+    <string name="clips_own_offset">Offset OSD proprio</string>
+    <string name="clips_offset_x">X: %1$d</string>
+    <string name="clips_offset_y">Y: %1$d</string>
 
     <string name="details_title">Dettagli Video &amp; OSD</string>
     <string name="details_video">Video:</string>
@@ -84,6 +88,7 @@
     <string name="export_title">Export</string>
     <string name="export_offset_x">Offset X: %1$d px</string>
     <string name="export_offset_y">Offset Y: %1$d px</string>
+    <string name="offset_global_hint">Offset globale: usato dalle clip senza un offset proprio</string>
     <string name="export_center">Centra</string>
     <string name="export_reset">Azzera</string>
     <string name="export_correct_speed">Correggi velocità OSD</string>
