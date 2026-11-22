@@ -1,13 +1,18 @@
 package dev.grogdunn.kwalksnailosd
 
+import dev.grogdunn.kwalksnailosd.clip.BatchBurner
+import dev.grogdunn.kwalksnailosd.clip.BatchJobState
 import dev.grogdunn.kwalksnailosd.clip.ClipList
+import dev.grogdunn.kwalksnailosd.video.BurnResult
 import dev.grogdunn.kwalksnailosd.video.OsdExportMode
+import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
 import java.nio.file.Path
+import javax.swing.SwingUtilities
 import java.time.Duration
 import javax.imageio.ImageIO
 import kotlin.io.path.createTempDirectory
@@ -324,8 +329,200 @@ class AppStateHolderTest {
         }
     }
 
+    @Test
+    fun onFilesPickedSelectsOnlyGivenClipsAndEnablesBatchMode() {
+        runBlocking {
+            val directory = createTempDirectory("files-pick")
+            val holder = folderHolder(mapOf("a.mp4" to clipVideo(), "b.mp4" to clipVideo(), "c.mp4" to clipVideo()))
+            try {
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                for (name in listOf("a", "b", "c")) {
+                    folder.resolve("$name.mp4").writeText("x")
+                    writeOsd(folder.resolve("$name.osd"))
+                }
+                holder.onFilesPicked(listOf(folder.resolve("c.mp4"), folder.resolve("a.mp4")))
+                val list = requireNotNull(holder.state.clipList)
+                assertTrue(holder.state.batchMode)
+                assertEquals(listOf("a", "c"), list.entries.map { it.info.files.baseName })
+                assertTrue(list.entries.all { it.info.osd != null && it.info.files.osd != null })
+                assertEquals(emptyMap(), holder.state.batchJobs)
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun mismatchedResolutionsBlockJoinButNotBatch() {
+        runBlocking {
+            val directory = createTempDirectory("batch-mismatch")
+            val holder = folderHolder(
+                mapOf(
+                    "a.mp4" to clipVideo(),
+                    "b.mp4" to clipVideo(width = 1280, height = 720, frameRate = 30.0),
+                ),
+            )
+            try {
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                for (name in listOf("a", "b")) {
+                    folder.resolve("$name.mp4").writeText("x")
+                    writeOsd(folder.resolve("$name.osd"))
+                }
+                holder.onFolderPicked(folder)
+                holder.onFontFilePickerClosed(fontResource("font_36x13878.png"))
+                holder.parseSelectedFont()
+                assertFalse(holder.state.batchMode)
+                assertFalse(holder.canStartBurn())
+                holder.setBatchMode(true)
+                assertTrue(holder.canStartBurn())
+                assertTrue(holder.canStartBatch())
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun batchBurnMarksTheSecondClipFailedAndUsesDistinctOutputs() {
+        val seen = mutableListOf<Path>()
+        val directory = createTempDirectory("batch-run")
+        val holder = AppStateHolder(
+            probeVideo = { clipVideo() },
+            batchBurnerFactory = recordingBurner("b.mp4", seen),
+        )
+        try {
+            val folder = directory.resolve("clips")
+            Files.createDirectories(folder)
+            for (name in listOf("c", "a", "b")) {
+                folder.resolve("$name.mp4").writeText("x")
+                writeOsd(folder.resolve("$name.osd"))
+            }
+            holder.onFilesPicked(listOf(folder.resolve("a.mp4"), folder.resolve("b.mp4"), folder.resolve("c.mp4")))
+            holder.onFontFilePickerClosed(fontResource("font_36x13878.png"))
+            runBlocking { holder.parseSelectedFont() }
+            val out = directory.resolve("out")
+            Files.createDirectories(out)
+            holder.startBatchBurn(out)
+            awaitNotBurning(holder)
+            val list = requireNotNull(holder.state.clipList)
+            val jobs = holder.state.batchJobs
+            assertTrue(jobs.getValue(entryId(list, "a")) is BatchJobState.Done)
+            assertTrue(jobs.getValue(entryId(list, "b")) is BatchJobState.Failed)
+            assertTrue(jobs.getValue(entryId(list, "c")) is BatchJobState.Done)
+            assertTrue(holder.state.burnError?.contains("1") == true)
+            assertEquals(
+                listOf("a_with_osd.mp4", "b_with_osd.mp4", "c_with_osd.mp4"),
+                seen.map { it.fileName.toString() },
+            )
+            assertTrue(seen.all { it.parent == out })
+        } finally {
+            holder.close()
+            directory.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun clipWithoutOsdFailsWhileTheOthersStillRun() {
+        val seen = mutableListOf<Path>()
+        val directory = createTempDirectory("batch-no-osd")
+        val holder = AppStateHolder(
+            probeVideo = { clipVideo() },
+            batchBurnerFactory = recordingBurner(null, seen),
+        )
+        try {
+            val folder = directory.resolve("clips")
+            Files.createDirectories(folder)
+            for (name in listOf("a", "b", "c")) folder.resolve("$name.mp4").writeText("x")
+            writeOsd(folder.resolve("a.osd"))
+            writeOsd(folder.resolve("c.osd"))
+            holder.onFilesPicked(listOf(folder.resolve("a.mp4"), folder.resolve("b.mp4"), folder.resolve("c.mp4")))
+            holder.onFontFilePickerClosed(fontResource("font_36x13878.png"))
+            runBlocking { holder.parseSelectedFont() }
+            holder.startBatchBurn(directory.resolve("out"))
+            awaitNotBurning(holder)
+            val list = requireNotNull(holder.state.clipList)
+            assertTrue(holder.state.batchJobs.getValue(entryId(list, "b")) is BatchJobState.Failed)
+            assertEquals(listOf("a_with_osd.mp4", "c_with_osd.mp4"), seen.map { it.fileName.toString() })
+        } finally {
+            holder.close()
+            directory.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun osdExportIsDisabledInBatchMode() {
+        runBlocking {
+            val directory = createTempDirectory("batch-osd-export")
+            val holder = folderHolder(mapOf("a.mp4" to clipVideo()))
+            try {
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                folder.resolve("a.mp4").writeText("x")
+                writeOsd(folder.resolve("a.osd"))
+                holder.onFolderPicked(folder)
+                holder.onFontFilePickerClosed(fontResource("font_36x13878.png"))
+                holder.parseSelectedFont()
+                holder.setOsdExportMode(OsdExportMode.ChromaKey)
+                assertTrue(holder.canStartOsdExport())
+                holder.setBatchMode(true)
+                assertFalse(holder.canStartOsdExport())
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun onFolderPickedKeepsBatchModeOff() {
+        runBlocking {
+            val directory = createTempDirectory("folder-not-batch")
+            val holder = folderHolder(mapOf("a.mp4" to clipVideo(), "b.mp4" to clipVideo()))
+            try {
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                for (name in listOf("a", "b")) {
+                    folder.resolve("$name.mp4").writeText("x")
+                    writeOsd(folder.resolve("$name.osd"))
+                }
+                holder.onFilesPicked(listOf(folder.resolve("a.mp4")))
+                assertTrue(holder.state.batchMode)
+                holder.onFolderPicked(folder)
+                assertFalse(holder.state.batchMode)
+                assertEquals(listOf("a", "b"), requireNotNull(holder.state.clipList).entries.map { it.info.files.baseName })
+                assertEquals(emptyMap(), holder.state.batchJobs)
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
     private fun folderHolder(infos: Map<String, VideoInfo>): AppStateHolder =
         AppStateHolder(probeVideo = { path -> infos.getValue(path.fileName.toString()) })
+
+    private fun recordingBurner(failFile: String?, seen: MutableList<Path>): (VideoCodec) -> BatchBurner = {
+        BatchBurner { job, _, _, _, _, _, _ ->
+            seen.add(job.output)
+            if (job.video.fileName.toString() == failFile) error("boom")
+            BurnResult(job.output, "fake", hardware = false, framesWritten = 1, usedSoftwareFallback = false)
+        }
+    }
+
+    private fun awaitNotBurning(holder: AppStateHolder) {
+        val deadline = System.nanoTime() + 10_000_000_000L
+        while (System.nanoTime() < deadline) {
+            var burning = true
+            SwingUtilities.invokeAndWait { burning = holder.state.isBurning }
+            if (!burning) return
+            Thread.sleep(20)
+        }
+        error("timed out waiting for burn")
+    }
 
     private fun entryId(list: ClipList, baseName: String): String =
         list.entries.first { it.info.files.baseName == baseName }.id
