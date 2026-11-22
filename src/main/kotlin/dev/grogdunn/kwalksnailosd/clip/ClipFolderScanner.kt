@@ -1,5 +1,6 @@
 package dev.grogdunn.kwalksnailosd.clip
 
+import dev.grogdunn.kwalksnailosd.lookupFiles
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,6 +13,33 @@ class ClipFolderScanner {
         val entries = grouped.map { files -> probeEntry(files, probe) }
         return ClipList(
             folder = folder,
+            entries = entries,
+            naturalOrderIds = entries.map { it.id },
+        )
+    }
+
+    fun scanFiles(videos: List<Path>, probe: (Path) -> VideoInfo): ClipList {
+        val selected = videos
+            .filter { it.extension.equals("mp4", ignoreCase = true) }
+            .distinct()
+            .sortedWith(compareBy({ it.fileName.toString() }, { it.toString() }))
+        if (selected.isEmpty()) {
+            return ClipList(folder = Path.of(""), entries = emptyList(), naturalOrderIds = emptyList())
+        }
+        val entries = selected.map { video ->
+            val companions = lookupFiles(video)
+            probeEntry(
+                ClipFiles(
+                    baseName = video.nameWithoutExtension,
+                    video = video,
+                    osd = companions.osdPath,
+                    srt = companions.srtPath,
+                ),
+                probe,
+            )
+        }
+        return ClipList(
+            folder = selected.first().parent ?: Path.of(""),
             entries = entries,
             naturalOrderIds = entries.map { it.id },
         )

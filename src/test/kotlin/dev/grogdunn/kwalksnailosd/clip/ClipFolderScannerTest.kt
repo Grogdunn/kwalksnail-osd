@@ -1,6 +1,7 @@
 package dev.grogdunn.kwalksnailosd.clip
 
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
+import java.nio.file.Path
 import java.time.Duration
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.name
@@ -113,6 +114,56 @@ class ClipFolderScannerTest {
             assertEquals("unreadable", entry.info.probeError)
         } finally {
             directory.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun scanFilesPicksCompanionsIgnoresNonMp4SortsAndHandlesEmpty() {
+        val directory = createTempDirectory("clips-files")
+        val other = createTempDirectory("clips-files-other")
+        try {
+            val upper = directory.resolve("B.mp4").also { it.writeText("x") }
+            val lower = directory.resolve("a.MP4").also { it.writeText("x") }
+            val lowerOsd = directory.resolve("a.Osd").also { it.writeText("x") }
+            val lowerSrt = directory.resolve("a.SRT").also { it.writeText("x") }
+            val srtOnly = directory.resolve("m.mp4").also { it.writeText("x") }
+            val srt = directory.resolve("m.srt").also { it.writeText("x") }
+            val sameName = other.resolve("m.mp4").also { it.writeText("x") }
+            val notes = directory.resolve("notes.md").also { it.writeText("x") }
+            val movie = directory.resolve("solo.mov").also { it.writeText("x") }
+
+            val list = scanner.scanFiles(
+                listOf(sameName, upper, lower, srtOnly, upper, movie, notes),
+            ) { video ->
+                if (video == upper) throw IllegalStateException("cannot read")
+                info()
+            }
+
+            val expected = listOf(upper, lower, srtOnly, sameName)
+                .sortedWith(compareBy({ it.fileName.toString() }, { it.toString() }))
+            assertEquals(expected, list.entries.map { it.info.files.video })
+            assertEquals(list.entries.map { it.id }, list.naturalOrderIds)
+            assertEquals(expected.first().parent, list.folder)
+            val byVideo = list.entries.associateBy { it.info.files.video }
+            assertEquals(lowerOsd, byVideo.getValue(lower).info.files.osd)
+            assertEquals(lowerSrt, byVideo.getValue(lower).info.files.srt)
+            assertNull(byVideo.getValue(upper).info.files.osd)
+            assertEquals(srt, byVideo.getValue(srtOnly).info.files.srt)
+            assertNull(byVideo.getValue(sameName).info.files.srt)
+            assertNull(byVideo.getValue(upper).info.videoInfo)
+            assertEquals("cannot read", byVideo.getValue(upper).info.probeError)
+            assertEquals(info().frameRate, byVideo.getValue(lower).info.videoInfo?.frameRate)
+
+            val empty = scanner.scanFiles(emptyList()) { error("probe should not run") }
+            assertTrue(empty.entries.isEmpty())
+            assertTrue(empty.naturalOrderIds.isEmpty())
+            assertEquals(Path.of(""), empty.folder)
+            val onlyOther = scanner.scanFiles(listOf(movie, notes)) { error("probe should not run") }
+            assertTrue(onlyOther.entries.isEmpty())
+            assertEquals(Path.of(""), onlyOther.folder)
+        } finally {
+            directory.toFile().deleteRecursively()
+            other.toFile().deleteRecursively()
         }
     }
 
