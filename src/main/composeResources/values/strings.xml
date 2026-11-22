@@ -15,6 +15,8 @@
     <string name="dialog_open_font">Select OSD font</string>
     <string name="dialog_save_video">Save video with OSD</string>
     <string name="dialog_open_folder">Select clip folder</string>
+    <string name="dialog_open_videos">Select MP4 videos</string>
+    <string name="dialog_batch_output">Choose output folder</string>
 
     <string name="sidebar_source_files">Source files</string>
     <string name="file_video_mp4">MP4 video</string>
@@ -25,6 +27,10 @@
     <string name="file_error">Error: %1$s</string>
     <string name="file_select">Select...</string>
     <string name="clips_open_folder">Open folder...</string>
+    <string name="clips_open_files">Open several videos (batch)…</string>
+    <string name="clips_mode_join">Join into one video</string>
+    <string name="clips_mode_batch">Convert each separately</string>
+    <string name="clips_batch_hint">Each included video is burned with its own OSD/SRT into &lt;name&gt;_with_osd.mp4 in the folder you choose.</string>
     <string name="clips_restore_order">Restore A→Z</string>
     <string name="clips_exclude">Exclude</string>
     <string name="clips_column_resolution">Res</string>
@@ -159,6 +165,12 @@
     <string name="batch_progress">Video %1$d/%2$d — %3$s — %4$d%%</string>
     <string name="batch_summary">Batch finished: %1$d done, %2$d failed, %3$d cancelled</string>
     <string name="batch_some_failed">%1$d video(s) failed — see the clip list for details</string>
+    <string name="batch_start">Convert all</string>
+    <string name="batch_state_pending">Waiting</string>
+    <string name="batch_state_running">Burning… %1$d%%</string>
+    <string name="batch_state_done">Done: %1$s</string>
+    <string name="batch_state_failed">Failed: %1$s</string>
+    <string name="batch_state_cancelled">Cancelled</string>
 
     <string name="error_srt_unreadable">Could not read the SRT file</string>
     <string name="error_srt_empty">The SRT file contains no subtitles.</string>

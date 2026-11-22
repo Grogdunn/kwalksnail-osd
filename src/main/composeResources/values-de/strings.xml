@@ -15,6 +15,8 @@
     <string name="dialog_open_font">OSD-Schrift auswählen</string>
     <string name="dialog_save_video">Video mit OSD speichern</string>
     <string name="dialog_open_folder">Clip-Ordner auswählen</string>
+    <string name="dialog_open_videos">MP4-Videos auswählen</string>
+    <string name="dialog_batch_output">Ausgabeordner wählen</string>
 
     <string name="sidebar_source_files">Quelldateien</string>
     <string name="file_video_mp4">MP4-Video</string>
@@ -25,6 +27,10 @@
     <string name="file_error">Fehler: %1$s</string>
     <string name="file_select">Auswählen...</string>
     <string name="clips_open_folder">Ordner öffnen...</string>
+    <string name="clips_open_files">Mehrere Videos öffnen (Stapel)…</string>
+    <string name="clips_mode_join">Zu einem Video zusammenfügen</string>
+    <string name="clips_mode_batch">Jedes einzeln konvertieren</string>
+    <string name="clips_batch_hint">Jedes eingeschlossene Video wird mit eigenem OSD/SRT nach &lt;name&gt;_with_osd.mp4 im gewählten Ordner gebrannt.</string>
     <string name="clips_restore_order">A→Z wiederherstellen</string>
     <string name="clips_exclude">Ausschließen</string>
     <string name="clips_column_resolution">Aufl.</string>
@@ -159,6 +165,12 @@
     <string name="batch_progress">Video %1$d/%2$d — %3$s — %4$d%%</string>
     <string name="batch_summary">Stapel fertig: %1$d erledigt, %2$d fehlgeschlagen, %3$d abgebrochen</string>
     <string name="batch_some_failed">%1$d Video(s) fehlgeschlagen — Details in der Clipliste</string>
+    <string name="batch_start">Alle konvertieren</string>
+    <string name="batch_state_pending">Warten</string>
+    <string name="batch_state_running">Brennen… %1$d%%</string>
+    <string name="batch_state_done">Fertig: %1$s</string>
+    <string name="batch_state_failed">Fehlgeschlagen: %1$s</string>
+    <string name="batch_state_cancelled">Abgebrochen</string>
 
     <string name="error_srt_unreadable">Die SRT-Datei konnte nicht gelesen werden</string>
     <string name="error_srt_empty">Die SRT-Datei enthält keine Untertitel.</string>
