@@ -154,6 +154,8 @@
     <string name="burn_multiclip_no_osd">Cada clip necesita datos OSD.</string>
     <string name="burn_multiclip_progress">Clip %1$d/%2$d — %3$d%% — ETA %4$s</string>
     <string name="burn_multiclip_muxing">Uniendo clips…</string>
+    <string name="batch_job_no_video">No se ha podido leer el vídeo</string>
+    <string name="batch_job_no_osd">No hay archivo OSD para este clip</string>
 
     <string name="error_srt_unreadable">No se ha podido leer el archivo SRT</string>
     <string name="error_srt_empty">El archivo SRT no contiene subtítulos.</string>

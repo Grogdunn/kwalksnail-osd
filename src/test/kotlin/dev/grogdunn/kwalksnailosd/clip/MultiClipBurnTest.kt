@@ -105,7 +105,7 @@ class MultiClipBurnTest {
     }
 }
 
-private fun softwareSettings() = BurnSettings(
+internal fun softwareSettings() = BurnSettings(
     codec = VideoCodec.H264,
     bitrateMbps = 4,
     encoder = BurnEncoderPreference.Software,
@@ -114,7 +114,7 @@ private fun softwareSettings() = BurnSettings(
     adjustPlaybackSpeed = false,
 )
 
-private fun preparedClip(
+internal fun preparedClip(
     ffmpeg: Path,
     directory: Path,
     name: String,
@@ -205,7 +205,7 @@ private fun writeOsd(path: Path, gridX: Int): Path {
     return path
 }
 
-private fun magentaFont(): Font {
+internal fun magentaFont(): Font {
     val size = CharacterSize.LARGE
     val tile = BufferedImage(size.width, size.height, BufferedImage.TYPE_INT_ARGB)
     val graphics = tile.createGraphics()
