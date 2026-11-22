@@ -23,6 +23,7 @@ import dev.grogdunn.kwalksnailosd.video.VideoBurnException
 import dev.grogdunn.kwalksnailosd.video.VideoBurner
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
+import dev.grogdunn.kwalksnailosd.video.VideoSize
 import dev.grogdunn.kwalksnailosd.video.forBundledFfmpeg
 import kotlinx.coroutines.CancellationException
 import java.awt.RenderingHints
@@ -57,8 +58,9 @@ class MultiClipBurner(
         onPreviewFrame: (BufferedImage) -> Unit = {},
         isCancelled: () -> Boolean = { false },
         srtOptions: SrtOptions = SrtOptions(),
+        targetSize: VideoSize? = null,
     ): BurnResult {
-        validate(clips)
+        validate(clips, targetSize)
         throwIfCancelled(isCancelled)
         val workDir = createWorkDir(output)
         try {
@@ -85,6 +87,7 @@ class MultiClipBurner(
                     srtOptions = srtOptions,
                     onPreviewFrame = preview::offer,
                     copyAudio = false,
+                    scaleTo = targetSize,
                 )
                 burned.add(result)
                 videos.add(tempVideo)
@@ -128,7 +131,7 @@ class MultiClipBurner(
         }
     }
 
-    private fun validate(clips: List<PreparedClip>) {
+    private fun validate(clips: List<PreparedClip>, targetSize: VideoSize? = null) {
         if (clips.isEmpty()) {
             throw VideoBurnException(uiText(Res.string.burn_multiclip_empty))
         }
@@ -138,9 +141,9 @@ class MultiClipBurner(
         val reference = clips.first().videoInfo
         val mismatch = clips.any { clip ->
             val info = clip.videoInfo
-            info.width != reference.width ||
-                info.height != reference.height ||
-                abs(info.frameRate - reference.frameRate) > FPS_TOLERANCE
+            val resolutionDiffers = targetSize == null &&
+                (info.width != reference.width || info.height != reference.height)
+            resolutionDiffers || abs(info.frameRate - reference.frameRate) > FPS_TOLERANCE
         }
         if (mismatch) {
             throw VideoBurnException(uiText(Res.string.burn_multiclip_mismatch))

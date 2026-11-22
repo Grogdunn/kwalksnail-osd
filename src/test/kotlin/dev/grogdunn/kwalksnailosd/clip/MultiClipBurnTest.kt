@@ -10,9 +10,12 @@ import dev.grogdunn.kwalksnailosd.video.BurnSettings
 import dev.grogdunn.kwalksnailosd.video.FfmpegEncoders
 import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.FfmpegLocator
+import dev.grogdunn.kwalksnailosd.video.VideoBurnException
 import dev.grogdunn.kwalksnailosd.video.VideoBurner
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
+import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import dev.grogdunn.kwalksnailosd.video.VideoParser
+import dev.grogdunn.kwalksnailosd.video.VideoSize
 import dev.grogdunn.kwalksnailosd.video.forBundledFfmpeg
 import kotlinx.coroutines.CancellationException
 import java.awt.Color
@@ -21,12 +24,14 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Duration
 import java.util.Locale
 import javax.imageio.ImageIO
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.exists
 import kotlin.math.abs
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -131,6 +136,63 @@ class MultiClipBurnTest {
         assertMagentaTile(late, shifted, tile)
         assertNotMagenta(late, original, tile)
     }
+
+    @Test
+    fun scalesNarrowerClipToTargetAndRendersOsdAfterPadding() {
+        val ffmpeg = FfmpegLocator().locateFor(VideoCodec.H264)
+        val directory = createTempDirectory("multiclip-scale")
+        val first = preparedClip(ffmpeg, directory, "one", withAudio = false, gridX = 1)
+        val second = preparedClip(ffmpeg, directory, "two", withAudio = false, gridX = 3, width = 80, height = 90)
+        val output = directory.resolve("joined.mp4")
+
+        MultiClipBurner(ffmpeg).burn(
+            clips = listOf(first, second),
+            font = magentaFont(),
+            settings = softwareSettings(),
+            output = output,
+            targetSize = VideoSize(160, 90),
+        )
+
+        VideoParser().use { parser ->
+            val burned = parser.getVideoInfo(output)
+            assertEquals(160, burned.width)
+            assertEquals(90, burned.height)
+        }
+        val late = extractFrameAt(ffmpeg, output, seconds = 1.2, directory.resolve("late.png"))
+        val tile = CharacterSize.LARGE
+        assertMagentaTile(late, tileOrigin(gridX = 3, gridY = 0, tile = tile), tile)
+        val bar = late.getRGB(5, 45)
+        val red = (bar shr 16) and 0xFF
+        val green = (bar shr 8) and 0xFF
+        val blue = bar and 0xFF
+        assertTrue(red < 24 && green < 24 && blue < 24, "pillarbox pixel = ${hex(bar)}")
+    }
+
+    @Test
+    fun resolutionMismatchWithoutTargetSizeThrows() {
+        val directory = createTempDirectory("multiclip-mismatch")
+        val osd = OsdParser().parse(writeOsd(directory.resolve("clip.osd"), gridX = 1))
+        val info = VideoInfo(
+            height = 90,
+            width = 160,
+            codec = "h264",
+            duration = Duration.ofSeconds(1),
+            frameRate = 10.0,
+            frameNumber = 10,
+            hasAudio = false,
+        )
+        assertFailsWith<VideoBurnException> {
+            MultiClipBurner(Path.of("ffmpeg")).burn(
+                clips = listOf(
+                    PreparedClip(Path.of("a.mp4"), info, osd),
+                    PreparedClip(Path.of("b.mp4"), info.copy(width = 320, height = 180), osd),
+                ),
+                font = magentaFont(),
+                settings = softwareSettings(),
+                output = directory.resolve("out.mp4"),
+            )
+        }
+    }
 }
 
 internal fun softwareSettings() = BurnSettings(
@@ -148,9 +210,11 @@ internal fun preparedClip(
     name: String,
     withAudio: Boolean,
     gridX: Int,
+    width: Int = 160,
+    height: Int = 90,
 ): PreparedClip {
     val video = directory.resolve("$name.mp4")
-    renderTestSrc(ffmpeg, video, width = 160, height = 90, fps = 10, seconds = 1, withAudio = withAudio)
+    renderTestSrc(ffmpeg, video, width = width, height = height, fps = 10, seconds = 1, withAudio = withAudio)
     val videoInfo = VideoParser().use { it.getVideoInfo(video) }
     val osd = OsdParser().parse(writeOsd(directory.resolve("$name.osd"), gridX))
     return PreparedClip(video, videoInfo, osd)
