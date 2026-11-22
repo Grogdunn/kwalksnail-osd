@@ -156,6 +156,9 @@
     <string name="burn_multiclip_muxing">Unione delle clip…</string>
     <string name="batch_job_no_video">Impossibile leggere il video</string>
     <string name="batch_job_no_osd">Nessun file OSD per questa clip</string>
+    <string name="batch_progress">Video %1$d/%2$d — %3$s — %4$d%%</string>
+    <string name="batch_summary">Batch terminato: %1$d completati, %2$d non riusciti, %3$d annullati</string>
+    <string name="batch_some_failed">%1$d video non riusciti — vedi l'elenco clip per i dettagli</string>
 
     <string name="error_srt_unreadable">Impossibile leggere il file SRT</string>
     <string name="error_srt_empty">Il file SRT non contiene sottotitoli.</string>

@@ -5,12 +5,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import dev.grogdunn.kwalksnailosd.clip.BatchBurner
+import dev.grogdunn.kwalksnailosd.clip.BatchJob
+import dev.grogdunn.kwalksnailosd.clip.BatchJobState
+import dev.grogdunn.kwalksnailosd.clip.BatchSummary
+import dev.grogdunn.kwalksnailosd.clip.ClipEntry
+import dev.grogdunn.kwalksnailosd.clip.batchOutputPaths
 import dev.grogdunn.kwalksnailosd.clip.ClipFolderScanner
 import dev.grogdunn.kwalksnailosd.clip.ClipInfo
 import dev.grogdunn.kwalksnailosd.clip.ClipList
 import dev.grogdunn.kwalksnailosd.clip.MultiClipBurner
 import dev.grogdunn.kwalksnailosd.clip.PreparedClip
 import dev.grogdunn.kwalksnailosd.generated.resources.Res
+import dev.grogdunn.kwalksnailosd.generated.resources.batch_progress
+import dev.grogdunn.kwalksnailosd.generated.resources.batch_some_failed
+import dev.grogdunn.kwalksnailosd.generated.resources.batch_summary
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_cancelled
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_failed
 import dev.grogdunn.kwalksnailosd.generated.resources.burn_multiclip_no_osd
@@ -109,6 +118,8 @@ data class AppUiState(
     val clipFolderError: String? = null,
     val osdExportMode: OsdExportMode? = null,
     val osdChromaColor: Int = 0xFFFF00FF.toInt(),
+    val batchMode: Boolean = false,
+    val batchJobs: Map<String, BatchJobState> = emptyMap(),
 )
 
 class AppStateHolder(
@@ -120,6 +131,9 @@ class AppStateHolder(
     private val probeVideo: (Path) -> VideoInfo = { videoParser.getVideoInfo(it) },
     private val pngRequiredBytes: (VideoInfo) -> Long = ::defaultPngRequiredBytes,
     private val pngDiskSpace: (Path, Long) -> DiskSpaceCheck = ::checkPngDiskSpace,
+    private val batchBurnerFactory: (VideoCodec) -> BatchBurner = { codec ->
+        BatchBurner.forFfmpeg(FfmpegLocator().locateFor(codec))
+    },
 ) : AutoCloseable {
     private val logger = KotlinLogging.logger {}
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -145,6 +159,8 @@ class AppStateHolder(
         state = state.copy(
             clipList = null,
             clipFolderError = null,
+            batchMode = false,
+            batchJobs = emptyMap(),
             selectedMp4 = selectedMp4,
             selectedOsd = selectedOsd,
             selectedSrt = selectedSrt,
@@ -164,29 +180,7 @@ class AppStateHolder(
     fun onFolderPicked(path: Path?) {
         if (path == null) return
         try {
-            val scanned = clipScanner.scan(path, probeVideo)
-            val enriched = scanned.copy(entries = scanned.entries.map { entry ->
-                entry.copy(info = parseCompanions(entry.info))
-            })
-            val representative = representativeSrt(enriched)
-            state = state.copy(
-                clipList = enriched,
-                clipFolderError = null,
-                selectedMp4 = null,
-                selectedOsd = null,
-                selectedSrt = null,
-                osd = null,
-                isParsingOsd = false,
-                osdError = null,
-                videoInfo = null,
-                videoError = null,
-                bitmap = null,
-                selectedFrame = 0.0f,
-                srt = representative,
-                srtOptions = if (representative != null) srtOptionsFor(representative, state.srtOptions) else state.srtOptions,
-                isParsingSrt = false,
-                srtError = null,
-            )
+            applyScannedClipList(clipScanner.scan(path, probeVideo), batchMode = false)
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
@@ -194,8 +188,54 @@ class AppStateHolder(
             state = state.copy(
                 clipList = null,
                 clipFolderError = exception.message ?: uiText(Res.string.error_video_unreadable),
+                batchMode = false,
+                batchJobs = emptyMap(),
             )
         }
+    }
+
+    fun onFilesPicked(paths: List<Path>) {
+        if (paths.isEmpty()) return
+        try {
+            applyScannedClipList(clipScanner.scanFiles(paths, probeVideo), batchMode = true)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger.error(exception) { "Failed to scan selected clips" }
+            state = state.copy(
+                clipList = null,
+                clipFolderError = exception.message ?: uiText(Res.string.error_video_unreadable),
+                batchMode = false,
+                batchJobs = emptyMap(),
+            )
+        }
+    }
+
+    private fun applyScannedClipList(scanned: ClipList, batchMode: Boolean) {
+        val enriched = scanned.copy(entries = scanned.entries.map { entry ->
+            entry.copy(info = parseCompanions(entry.info))
+        })
+        val representative = representativeSrt(enriched)
+        state = state.copy(
+            clipList = enriched,
+            clipFolderError = null,
+            selectedMp4 = null,
+            selectedOsd = null,
+            selectedSrt = null,
+            osd = null,
+            isParsingOsd = false,
+            osdError = null,
+            videoInfo = null,
+            videoError = null,
+            bitmap = null,
+            selectedFrame = 0.0f,
+            srt = representative,
+            srtOptions = if (representative != null) srtOptionsFor(representative, state.srtOptions) else state.srtOptions,
+            isParsingSrt = false,
+            srtError = null,
+            batchMode = batchMode,
+            batchJobs = emptyMap(),
+        )
     }
 
     fun onFontFilePickerClosed(path: Path?) {
@@ -407,6 +447,7 @@ class AppStateHolder(
 
     fun canStartOsdExport(): Boolean {
         if (state.isBurning || state.osdExportMode == null || state.font == null) return false
+        if (state.clipList != null && state.batchMode) return false
         return osdExportSource() != null
     }
 
@@ -429,9 +470,20 @@ class AppStateHolder(
         else -> null
     }
 
+    fun setBatchMode(enabled: Boolean) {
+        if (state.isBurning || state.clipList == null) return
+        state = state.copy(batchMode = enabled, batchJobs = emptyMap(), burnMessage = null, burnError = null)
+    }
+
+    fun canStartBatch(): Boolean {
+        if (state.isBurning || state.clipList == null || state.font == null) return false
+        return state.clipList!!.included().any { it.info.videoInfo != null && it.info.osd != null }
+    }
+
     fun canStartBurn(): Boolean {
         if (state.isBurning) return false
         val list = state.clipList
+        if (list != null && state.batchMode) return canStartBatch()
         if (list != null) {
             return list.canBurn() && state.font != null && list.included().all { it.info.osd != null }
         }
@@ -443,6 +495,11 @@ class AppStateHolder(
         if (list != null) return "${list.outputStem() ?: "joined"}.mp4"
         val mp4 = state.selectedMp4 ?: return ""
         return outputNameFor(mp4)
+    }
+
+    fun suggestedBatchOutputDir(): Path? {
+        val folder = state.clipList?.folder ?: return null
+        return folder.takeIf { it.toString().isNotEmpty() }
     }
 
     fun suggestedOsdExportName(): String {
@@ -488,6 +545,10 @@ class AppStateHolder(
     }
 
     fun startBurn(output: Path) {
+        if (state.clipList != null && state.batchMode) {
+            startBatchBurn(output)
+            return
+        }
         if (state.clipList != null) {
             startFolderBurn(output)
             return
@@ -555,6 +616,93 @@ class AppStateHolder(
                         burnMessage = null,
                     )
                 }
+            }
+        }
+    }
+
+    fun startBatchBurn(outputDir: Path) {
+        if (!canStartBatch()) return
+        val list = state.clipList ?: return
+        val font = state.font ?: return
+        val included = list.included()
+        val outputs = batchOutputPaths(included.map { it.info.files.video }, outputDir)
+        val jobs = included.mapIndexed { index, entry -> batchJob(entry, outputs[index]) }
+        val settings = BurnSettings(
+            codec = state.burnCodec,
+            bitrateMbps = state.burnBitrateMbps,
+            encoder = state.burnEncoder,
+            offsetX = state.osdOffsetX,
+            offsetY = state.osdOffsetY,
+            adjustPlaybackSpeed = state.adjustOsdPlaybackSpeed,
+        )
+        val srtOptions = state.srtOptions
+        val generation = ++burnGeneration
+        state = state.copy(
+            isBurning = true,
+            burnProgress = 0f,
+            burnMessage = uiText(Res.string.burn_starting),
+            burnError = null,
+            batchJobs = emptyMap(),
+        )
+        val burner = batchBurnerFactory(settings.codec)
+        burnJob = scope.launch {
+            executeBatchBurn(burner, jobs, font, settings, srtOptions, generation)
+        }
+    }
+
+    private fun batchJob(entry: ClipEntry, output: Path): BatchJob {
+        val info = entry.info
+        val missing = info.videoInfo == null || info.osd == null
+        return BatchJob(
+            id = entry.id,
+            video = info.files.video,
+            output = output,
+            videoInfo = info.videoInfo,
+            osd = info.osd,
+            srt = info.srt,
+            preflightError = if (missing) info.probeError ?: info.osdError else null,
+        )
+    }
+
+    private suspend fun executeBatchBurn(
+        burner: BatchBurner,
+        jobs: List<BatchJob>,
+        font: Font,
+        settings: BurnSettings,
+        srtOptions: SrtOptions,
+        generation: Int,
+    ) {
+        var summary: BatchSummary? = null
+        try {
+            withContext(Dispatchers.IO) {
+                val burnScope = this
+                val result = burner.run(
+                    jobs = jobs,
+                    font = font,
+                    settings = settings,
+                    srtOptions = srtOptions,
+                    onJobState = { id, jobState -> publishBatchJob(generation, jobs, id, jobState) },
+                    onPreviewFrame = { frame -> publishPreview(generation, frame) },
+                    isCancelled = { !burnScope.isActive },
+                )
+                summary = result
+                result
+            }
+            publishBatchSummary(generation, summary!!)
+        } catch (_: CancellationException) {
+            publishBatchSummary(
+                generation,
+                summary ?: BatchSummary(jobs.associate { it.id to BatchJobState.Cancelled }),
+            )
+        } catch (failure: Exception) {
+            logger.error(failure) { "Batch burn failed" }
+            SwingUtilities.invokeLater {
+                if (!canApplyBatchResult(generation)) return@invokeLater
+                state = state.copy(
+                    isBurning = false,
+                    burnError = failure.message ?: uiText(Res.string.burn_failed),
+                    burnMessage = null,
+                )
             }
         }
     }
@@ -741,6 +889,53 @@ class AppStateHolder(
         SwingUtilities.invokeLater {
             if (generation != burnGeneration || !state.isBurning) return@invokeLater
             state = state.copy(bitmap = image.toComposeImageBitmap())
+        }
+    }
+
+    private fun canApplyBatchResult(generation: Int): Boolean {
+        if (burnGeneration == generation) return true
+        return burnGeneration == generation + 1 && !state.isBurning
+    }
+
+    private fun publishBatchJob(generation: Int, jobs: List<BatchJob>, id: String, jobState: BatchJobState) {
+        SwingUtilities.invokeLater {
+            if (!canApplyBatchResult(generation)) return@invokeLater
+            val index = jobs.indexOfFirst { it.id == id }
+            if (index < 0) return@invokeLater
+            val updated = state.batchJobs + (id to jobState)
+            val finished = updated.values.count {
+                it is BatchJobState.Done || it is BatchJobState.Failed || it is BatchJobState.Cancelled
+            }
+            val running = (jobState as? BatchJobState.Running)?.fraction ?: 0f
+            val percent = when (jobState) {
+                is BatchJobState.Running -> (jobState.fraction * 100f).roundToInt()
+                is BatchJobState.Done, is BatchJobState.Failed -> 100
+                BatchJobState.Pending, BatchJobState.Cancelled -> 0
+            }
+            state = state.copy(
+                batchJobs = updated,
+                burnProgress = (finished + running) / jobs.size.coerceAtLeast(1),
+                burnMessage = uiText(
+                    Res.string.batch_progress,
+                    index + 1,
+                    jobs.size,
+                    jobs[index].video.fileName.toString(),
+                    percent,
+                ),
+            )
+        }
+    }
+
+    private fun publishBatchSummary(generation: Int, summary: BatchSummary) {
+        SwingUtilities.invokeLater {
+            if (!canApplyBatchResult(generation)) return@invokeLater
+            state = state.copy(
+                isBurning = false,
+                burnProgress = 1f,
+                burnMessage = uiText(Res.string.batch_summary, summary.done, summary.failed, summary.cancelled),
+                burnError = if (summary.failed > 0) uiText(Res.string.batch_some_failed, summary.failed) else null,
+                batchJobs = summary.states,
+            )
         }
     }
 
