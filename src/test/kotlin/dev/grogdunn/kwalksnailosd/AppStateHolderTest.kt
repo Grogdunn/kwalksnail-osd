@@ -5,6 +5,7 @@ import dev.grogdunn.kwalksnailosd.clip.BatchJobState
 import dev.grogdunn.kwalksnailosd.clip.ClipList
 import dev.grogdunn.kwalksnailosd.video.BurnResult
 import dev.grogdunn.kwalksnailosd.video.OsdExportMode
+import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
 import java.awt.image.BufferedImage
@@ -499,6 +500,123 @@ class AppStateHolderTest {
                 holder.close()
                 directory.toFile().deleteRecursively()
             }
+        }
+    }
+
+    @Test
+    fun setClipOffsetAndEnableClipOffsetFollowTheGlobalOffset() {
+        runBlocking {
+            val directory = createTempDirectory("clip-offset")
+            val holder = folderHolder(mapOf("a.mp4" to clipVideo()))
+            try {
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                folder.resolve("a.mp4").writeText("x")
+                writeOsd(folder.resolve("a.osd"))
+                holder.onFolderPicked(folder)
+                holder.setOsdOffset(3, 4)
+                val id = entryId(requireNotNull(holder.state.clipList), "a")
+                holder.enableClipOffset(id, true)
+                assertEquals(OsdOffset(3, 4), holder.state.clipList!!.entries.first { it.id == id }.offset)
+                holder.setClipOffset(id, OsdOffset(11, 22))
+                assertEquals(OsdOffset(11, 22), holder.state.clipList!!.entries.first { it.id == id }.offset)
+                holder.enableClipOffset(id, true)
+                assertEquals(OsdOffset(11, 22), holder.state.clipList!!.entries.first { it.id == id }.offset)
+                holder.enableClipOffset(id, false)
+                assertNull(holder.state.clipList!!.entries.first { it.id == id }.offset)
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun canEditBurnOptionsNeedsAFontAndAValidClip() {
+        runBlocking {
+            val directory = createTempDirectory("edit-options")
+            val holder = folderHolder(mapOf("a.mp4" to clipVideo()))
+            try {
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                folder.resolve("a.mp4").writeText("x")
+                writeOsd(folder.resolve("a.osd"))
+                holder.onFolderPicked(folder)
+                assertFalse(holder.canEditBurnOptions())
+                holder.onFontFilePickerClosed(fontResource("font_36x13878.png"))
+                holder.parseSelectedFont()
+                assertTrue(holder.canEditBurnOptions())
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun previewClipUsesTheClipAndAFolderPickClearsIt() {
+        runBlocking {
+            val directory = createTempDirectory("clip-preview")
+            val holder = folderHolder(mapOf("a.mp4" to clipVideo()))
+            try {
+                val folder = directory.resolve("clips")
+                Files.createDirectories(folder)
+                folder.resolve("a.mp4").writeText("x")
+                writeOsd(folder.resolve("a.osd"))
+                holder.onFolderPicked(folder)
+                holder.onFontFilePickerClosed(fontResource("font_36x13878.png"))
+                holder.parseSelectedFont()
+                val options = holder.state.srtOptions
+                val entry = requireNotNull(holder.state.clipList).entries.first()
+                holder.previewClip(entry.id)
+                assertEquals(entry.id, holder.state.previewClipId)
+                assertEquals(entry.info.videoInfo, holder.state.videoInfo)
+                assertEquals(entry.info.osd, holder.state.osd)
+                assertNull(holder.state.selectedMp4)
+                assertEquals(options, holder.state.srtOptions)
+                holder.onFolderPicked(folder)
+                assertNull(holder.state.previewClipId)
+            } finally {
+                holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun batchBurnPassesPerClipOffsets() {
+        val seen = mutableMapOf<String, Pair<Int, Int>>()
+        val directory = createTempDirectory("batch-offset")
+        val holder = AppStateHolder(
+            probeVideo = { clipVideo() },
+            batchBurnerFactory = {
+                BatchBurner { job, _, settings, _, _, _, _ ->
+                    seen[job.id] = settings.offsetX to settings.offsetY
+                    BurnResult(job.output, "fake", hardware = false, framesWritten = 1, usedSoftwareFallback = false)
+                }
+            },
+        )
+        try {
+            val folder = directory.resolve("clips")
+            Files.createDirectories(folder)
+            for (name in listOf("a", "b")) {
+                folder.resolve("$name.mp4").writeText("x")
+                writeOsd(folder.resolve("$name.osd"))
+            }
+            holder.onFilesPicked(listOf(folder.resolve("a.mp4"), folder.resolve("b.mp4")))
+            holder.onFontFilePickerClosed(fontResource("font_36x13878.png"))
+            runBlocking { holder.parseSelectedFont() }
+            holder.setOsdOffset(3, 4)
+            val list = requireNotNull(holder.state.clipList)
+            holder.setClipOffset(entryId(list, "a"), OsdOffset(11, 22))
+            holder.startBatchBurn(directory.resolve("out"))
+            awaitNotBurning(holder)
+            val updated = requireNotNull(holder.state.clipList)
+            assertEquals(11 to 22, seen.getValue(entryId(updated, "a")))
+            assertEquals(3 to 4, seen.getValue(entryId(updated, "b")))
+        } finally {
+            holder.close()
+            directory.toFile().deleteRecursively()
         }
     }
 

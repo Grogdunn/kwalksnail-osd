@@ -57,6 +57,7 @@ import dev.grogdunn.kwalksnailosd.video.DiskSpaceCheck
 import dev.grogdunn.kwalksnailosd.video.OsdExportMode
 import dev.grogdunn.kwalksnailosd.video.OsdExportSettings
 import dev.grogdunn.kwalksnailosd.video.OsdExporter
+import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.checkPngDiskSpace
 import dev.grogdunn.kwalksnailosd.video.estimatePngSequenceBytes
@@ -115,6 +116,7 @@ data class AppUiState(
     val srtError: String? = null,
     val srtOptions: SrtOptions = SrtOptions(),
     val clipList: ClipList? = null,
+    val previewClipId: String? = null,
     val clipFolderError: String? = null,
     val osdExportMode: OsdExportMode? = null,
     val osdChromaColor: Int = 0xFFFF00FF.toInt(),
@@ -158,6 +160,7 @@ class AppStateHolder(
         val srtChanged = selectedSrt != state.selectedSrt
         state = state.copy(
             clipList = null,
+            previewClipId = null,
             clipFolderError = null,
             batchMode = false,
             batchJobs = emptyMap(),
@@ -187,6 +190,7 @@ class AppStateHolder(
             logger.error(exception) { "Failed to scan clip folder $path" }
             state = state.copy(
                 clipList = null,
+                previewClipId = null,
                 clipFolderError = exception.message ?: uiText(Res.string.error_video_unreadable),
                 batchMode = false,
                 batchJobs = emptyMap(),
@@ -204,6 +208,7 @@ class AppStateHolder(
             logger.error(exception) { "Failed to scan selected clips" }
             state = state.copy(
                 clipList = null,
+                previewClipId = null,
                 clipFolderError = exception.message ?: uiText(Res.string.error_video_unreadable),
                 batchMode = false,
                 batchJobs = emptyMap(),
@@ -218,6 +223,7 @@ class AppStateHolder(
         val representative = representativeSrt(enriched)
         state = state.copy(
             clipList = enriched,
+            previewClipId = null,
             clipFolderError = null,
             selectedMp4 = null,
             selectedOsd = null,
@@ -316,7 +322,7 @@ class AppStateHolder(
     }
 
     fun onFrameSelected(selectedFrame: Float) {
-        val mp4 = state.selectedMp4 ?: return
+        val mp4 = previewVideoPath() ?: return
         val videoInfo = state.videoInfo ?: return
         val osd = state.osd ?: return
         val font = state.font ?: return
@@ -331,7 +337,8 @@ class AppStateHolder(
             state = state.copy(videoError = exception.message ?: uiText(Res.string.error_video_unreadable))
             return
         } ?: return
-        osdRenderer.renderInPlace(selectedFrameImage, osdFrame, font, state.osdOffsetX, state.osdOffsetY)
+        val offset = previewOffset()
+        osdRenderer.renderInPlace(selectedFrameImage, osdFrame, font, offset.x, offset.y)
         drawSrt(selectedFrameImage, videoInfo, selectedFrame)
         state = state.copy(
             selectedFrame = selectedFrame,
@@ -544,6 +551,46 @@ class AppStateHolder(
         state = state.copy(clipList = transform(list))
     }
 
+    fun setClipOffset(id: String, offset: OsdOffset?) {
+        if (state.isBurning || state.clipList == null) return
+        updateClipList { it.withOffset(id, offset) }
+        if (id == state.previewClipId) rerenderCurrentFrame()
+    }
+
+    fun enableClipOffset(id: String, enabled: Boolean) {
+        if (state.isBurning) return
+        val entry = state.clipList?.entries?.find { it.id == id } ?: return
+        val offset = if (enabled) entry.offset ?: OsdOffset(state.osdOffsetX, state.osdOffsetY) else null
+        if (entry.offset == offset) return
+        updateClipList { it.withOffset(id, offset) }
+        if (id == state.previewClipId) rerenderCurrentFrame()
+    }
+
+    fun previewClip(id: String) {
+        if (state.isBurning) return
+        val entry = state.clipList?.entries?.find { it.id == id } ?: return
+        val videoInfo = entry.info.videoInfo ?: return
+        val osd = entry.info.osd ?: return
+        state = state.copy(
+            previewClipId = id,
+            videoInfo = videoInfo,
+            osd = osd,
+            selectedFrame = 0f,
+            videoError = null,
+        )
+        onFrameSelected(0f)
+    }
+
+    fun canEditBurnOptions(): Boolean {
+        if (state.isBurning || state.font == null) return false
+        val list = state.clipList
+        return if (list != null) {
+            list.included().any { it.info.videoInfo != null && it.info.osd != null }
+        } else {
+            state.videoInfo != null && state.osd != null
+        }
+    }
+
     fun startBurn(output: Path) {
         if (state.clipList != null && state.batchMode) {
             startBatchBurn(output)
@@ -661,6 +708,7 @@ class AppStateHolder(
             osd = info.osd,
             srt = info.srt,
             preflightError = if (missing) info.probeError ?: info.osdError else null,
+            offset = entry.offset,
         )
     }
 
@@ -736,6 +784,7 @@ class AppStateHolder(
                             videoInfo = videoInfo,
                             osd = osd,
                             srt = info.srt,
+                            offset = entry.offset,
                         )
                     }
                     MultiClipBurner(FfmpegLocator().locateFor(settings.codec)).burn(
@@ -968,8 +1017,27 @@ class AppStateHolder(
         }
     }
 
+    private fun previewVideoPath(): Path? {
+        val list = state.clipList ?: return state.selectedMp4
+        val id = state.previewClipId ?: return null
+        return list.entries.find { it.id == id }?.info?.files?.video
+    }
+
+    private fun previewOffset(): OsdOffset {
+        val global = OsdOffset(state.osdOffsetX, state.osdOffsetY)
+        val list = state.clipList ?: return global
+        val id = state.previewClipId ?: return global
+        return list.effectiveOffset(id, global)
+    }
+
+    private fun previewSrt(): SrtFile? {
+        val list = state.clipList ?: return state.srt
+        val id = state.previewClipId ?: return null
+        return list.entries.find { it.id == id }?.info?.srt
+    }
+
     private fun drawSrt(image: java.awt.image.BufferedImage, videoInfo: VideoInfo, selectedFrame: Float) {
-        val srt = state.srt ?: return
+        val srt = previewSrt() ?: return
         if (videoInfo.frameRate <= 0.0) return
         val cue = srtCueAt(srt.cues, selectedFrame / videoInfo.frameRate * 1000.0) ?: return
         val data = cue.data ?: return
@@ -977,7 +1045,8 @@ class AppStateHolder(
     }
 
     private fun rerenderCurrentFrame() {
-        if (state.selectedMp4 == null || state.videoInfo == null || state.osd == null || state.font == null) return
+        val hasSource = state.selectedMp4 != null || state.previewClipId != null
+        if (!hasSource || state.videoInfo == null || state.osd == null || state.font == null) return
         onFrameSelected(state.selectedFrame)
     }
 
