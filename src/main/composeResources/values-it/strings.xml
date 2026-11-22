@@ -15,6 +15,8 @@
     <string name="dialog_open_font">Seleziona font OSD</string>
     <string name="dialog_save_video">Salva video con OSD</string>
     <string name="dialog_open_folder">Seleziona cartella clip</string>
+    <string name="dialog_open_videos">Seleziona video MP4</string>
+    <string name="dialog_batch_output">Scegli cartella di destinazione</string>
 
     <string name="sidebar_source_files">File Sorgente</string>
     <string name="file_video_mp4">Video MP4</string>
@@ -25,6 +27,10 @@
     <string name="file_error">Errore: %1$s</string>
     <string name="file_select">Seleziona...</string>
     <string name="clips_open_folder">Apri cartella...</string>
+    <string name="clips_open_files">Apri più video (batch)…</string>
+    <string name="clips_mode_join">Unisci in un video</string>
+    <string name="clips_mode_batch">Converti ciascuno separatamente</string>
+    <string name="clips_batch_hint">Ogni video incluso viene masterizzato con il proprio OSD/SRT in &lt;name&gt;_with_osd.mp4 nella cartella scelta.</string>
     <string name="clips_restore_order">Ripristina A→Z</string>
     <string name="clips_exclude">Escludi</string>
     <string name="clips_column_resolution">Risol.</string>
@@ -159,6 +165,12 @@
     <string name="batch_progress">Video %1$d/%2$d — %3$s — %4$d%%</string>
     <string name="batch_summary">Batch terminato: %1$d completati, %2$d non riusciti, %3$d annullati</string>
     <string name="batch_some_failed">%1$d video non riusciti — vedi l'elenco clip per i dettagli</string>
+    <string name="batch_start">Converti tutti</string>
+    <string name="batch_state_pending">In attesa</string>
+    <string name="batch_state_running">Masterizzazione… %1$d%%</string>
+    <string name="batch_state_done">Fatto: %1$s</string>
+    <string name="batch_state_failed">Non riuscito: %1$s</string>
+    <string name="batch_state_cancelled">Annullato</string>
 
     <string name="error_srt_unreadable">Impossibile leggere il file SRT</string>
     <string name="error_srt_empty">Il file SRT non contiene sottotitoli.</string>

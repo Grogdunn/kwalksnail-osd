@@ -39,6 +39,21 @@ fun desktopFileDialog(
 
 }
 
+fun desktopMultiFileDialog(
+    title: String,
+    allowedExtensions: List<String>,
+    onCloseRequest: (List<Path>) -> Unit,
+) {
+    val fileDialog = FileDialog(null as Frame?, title, FileDialog.LOAD).apply {
+        isMultipleMode = true
+        if (allowedExtensions.isNotEmpty()) {
+            filenameFilter = FilenameFilter { _, name -> allowedExtensions.any { name.endsWith(it, ignoreCase = true) } }
+        }
+        isVisible = true
+    }
+    onCloseRequest(fileDialog.files.map { it.toPath() })
+}
+
 fun desktopSaveDialog(
     suggestedName: String,
     title: String,
@@ -92,11 +107,15 @@ fun desktopPngSequenceDialog(
 
 fun desktopFolderDialog(
     title: String,
+    initialDirectory: Path? = null,
     onCloseRequest: (result: Path?) -> Unit,
 ) {
     val chooser = JFileChooser().apply {
         dialogTitle = title
         fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+        if (initialDirectory != null && Files.isDirectory(initialDirectory)) {
+            currentDirectory = initialDirectory.toFile()
+        }
     }
     approveDirectoryOnSingleClick(chooser)
     val selected = if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) chooser.selectedFile else null

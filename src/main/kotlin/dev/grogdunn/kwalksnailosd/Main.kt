@@ -173,6 +173,7 @@ private fun LeftSidebarPanel(
     val scrollState = rememberScrollState()
     val openVideoTitle = stringResource(Res.string.dialog_open_video)
     val openFolderTitle = stringResource(Res.string.dialog_open_folder)
+    val openVideosTitle = stringResource(Res.string.dialog_open_videos)
     val openOsdTitle = stringResource(Res.string.dialog_open_osd)
     val openSrtTitle = stringResource(Res.string.dialog_open_srt)
     val openFontTitle = stringResource(Res.string.dialog_open_font)
@@ -191,11 +192,23 @@ private fun LeftSidebarPanel(
         )
 
         OutlinedButton(
-            onClick = { desktopFolderDialog(openFolderTitle, stateHolder::onFolderPicked) },
+            onClick = { desktopFolderDialog(openFolderTitle) { stateHolder.onFolderPicked(it) } },
             enabled = !state.isBurning,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(Res.string.clips_open_folder), fontSize = 12.sp)
+        }
+
+        OutlinedButton(
+            onClick = {
+                desktopMultiFileDialog(title = openVideosTitle, allowedExtensions = listOf("mp4")) {
+                    stateHolder.onFilesPicked(it)
+                }
+            },
+            enabled = !state.isBurning,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(Res.string.clips_open_files), fontSize = 12.sp)
         }
 
         if (state.clipList == null) {
@@ -410,7 +423,9 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
         style = MaterialTheme.typography.subtitle1,
         fontWeight = FontWeight.Bold
     )
-    OsdExportModeRow(stateHolder)
+    if (state.clipList == null || !state.batchMode) {
+        OsdExportModeRow(stateHolder)
+    }
 
     Text(stringResource(Res.string.export_offset_x, state.osdOffsetX), style = MaterialTheme.typography.caption)
     Slider(
@@ -606,11 +621,13 @@ private fun OsdExportModeRow(stateHolder: AppStateHolder) {
 @Composable
 private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
     val state = stateHolder.state
-    val exportingOsd = state.osdExportMode != null
+    val batch = state.clipList != null && state.batchMode
+    val exportingOsd = state.osdExportMode != null && !batch
     val canBurn = stateHolder.canStartBurn()
     val saveTitle = stringResource(Res.string.dialog_save_video)
     val saveOsdTitle = stringResource(Res.string.dialog_save_osd)
     val savePngTitle = stringResource(Res.string.dialog_save_osd_png)
+    val batchOutputTitle = stringResource(Res.string.dialog_batch_output)
     val noSpaceTitle = stringResource(Res.string.osd_export_png_no_space_title)
     val confirmTitle = stringResource(Res.string.osd_export_png_confirm_title)
 
@@ -635,7 +652,14 @@ private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
             } else {
                 OutlinedButton(
                     onClick = {
-                        if (!exportingOsd) {
+                        if (batch) {
+                            desktopFolderDialog(
+                                title = batchOutputTitle,
+                                initialDirectory = stateHolder.suggestedBatchOutputDir(),
+                            ) { path ->
+                                if (path != null) stateHolder.startBurn(path)
+                            }
+                        } else if (!exportingOsd) {
                             desktopSaveDialog(stateHolder.suggestedOutputName(), saveTitle) { path ->
                                 if (path != null) stateHolder.startBurn(path)
                             }
@@ -688,7 +712,13 @@ private fun BurnStatusAndButton(stateHolder: AppStateHolder) {
                     enabled = if (exportingOsd) stateHolder.canStartOsdExport() else canBurn
                 ) {
                     Text(
-                        stringResource(if (exportingOsd) Res.string.osd_export_button else Res.string.export_burn),
+                        stringResource(
+                            when {
+                                batch -> Res.string.batch_start
+                                exportingOsd -> Res.string.osd_export_button
+                                else -> Res.string.export_burn
+                            },
+                        ),
                         fontSize = 12.sp,
                     )
                 }

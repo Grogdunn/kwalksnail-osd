@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Checkbox
+import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Text
@@ -35,10 +37,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.grogdunn.kwalksnailosd.clip.BatchJobState
 import dev.grogdunn.kwalksnailosd.clip.ClipEntry
 import dev.grogdunn.kwalksnailosd.clip.ClipList
 import dev.grogdunn.kwalksnailosd.generated.resources.Res
+import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_cancelled
+import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_done
+import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_failed
+import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_pending
+import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_running
+import dev.grogdunn.kwalksnailosd.generated.resources.clips_batch_hint
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_column_duration
+import dev.grogdunn.kwalksnailosd.generated.resources.clips_mode_batch
+import dev.grogdunn.kwalksnailosd.generated.resources.clips_mode_join
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_column_fps
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_column_osd
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_column_resolution
@@ -68,6 +79,27 @@ internal fun ClipListPanel(stateHolder: AppStateHolder) {
     val no = stringResource(Res.string.clips_no)
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            ClipModeButton(
+                label = stringResource(Res.string.clips_mode_join),
+                selected = !state.batchMode,
+                enabled = editsEnabled,
+                onClick = { stateHolder.setBatchMode(false) },
+            )
+            ClipModeButton(
+                label = stringResource(Res.string.clips_mode_batch),
+                selected = state.batchMode,
+                enabled = editsEnabled,
+                onClick = { stateHolder.setBatchMode(true) },
+            )
+        }
+        if (state.batchMode) {
+            Text(
+                text = stringResource(Res.string.clips_batch_hint),
+                style = MaterialTheme.typography.caption,
+                color = Color.Gray,
+            )
+        }
         OutlinedButton(
             onClick = stateHolder::restoreClipOrder,
             enabled = editsEnabled,
@@ -79,7 +111,7 @@ internal fun ClipListPanel(stateHolder: AppStateHolder) {
             text = stringResource(Res.string.clips_total_duration, formatDuration(clipList.totalDuration())),
             style = MaterialTheme.typography.caption,
         )
-        MismatchMessage(clipList)
+        if (!state.batchMode) MismatchMessage(clipList)
         Text(
             text = listOf(
                 stringResource(Res.string.clips_column_resolution),
@@ -102,9 +134,23 @@ internal fun ClipListPanel(stateHolder: AppStateHolder) {
                     editsEnabled = editsEnabled,
                     yes = yes,
                     no = no,
+                    highlightMismatches = !state.batchMode,
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ClipModeButton(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        colors = ButtonDefaults.outlinedButtonColors(
+            backgroundColor = if (selected) MaterialTheme.colors.primary.copy(alpha = 0.2f) else Color.Transparent,
+        ),
+    ) {
+        Text(label, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -130,10 +176,11 @@ private fun ClipRow(
     editsEnabled: Boolean,
     yes: String,
     no: String,
+    highlightMismatches: Boolean = true,
 ) {
     val info = entry.info
     val video = info.videoInfo
-    val highlighted = clipList.highlighted(entry.id)
+    val highlighted = highlightMismatches && clipList.highlighted(entry.id)
     val rowHeightPx = remember(entry.id) { mutableFloatStateOf(1f) }
     val borderColor = if (highlighted) MaterialTheme.colors.error else Color(0xFF2C2C2C)
     val background = if (highlighted) MaterialTheme.colors.error.copy(alpha = 0.15f) else MaterialTheme.colors.surface
@@ -198,10 +245,58 @@ private fun ClipRow(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+        if (stateHolder.state.batchMode) {
+            BatchJobCaption(stateHolder.state.batchJobs[entry.id])
+        }
         info.probeError?.let { ClipError(it) }
         info.osdError?.let { ClipError(it) }
         info.srtError?.let { ClipError(it) }
     }
+}
+
+@Composable
+private fun BatchJobCaption(job: BatchJobState?) {
+    val kind = batchStatusKind(job) ?: return
+    val text = when (kind) {
+        BatchStatusKind.Pending -> stringResource(Res.string.batch_state_pending)
+        is BatchStatusKind.Running -> stringResource(Res.string.batch_state_running, kind.percent)
+        is BatchStatusKind.Done -> stringResource(Res.string.batch_state_done, kind.fileName)
+        is BatchStatusKind.Failed -> stringResource(Res.string.batch_state_failed, kind.message)
+        BatchStatusKind.Cancelled -> stringResource(Res.string.batch_state_cancelled)
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.caption,
+        color = if (kind is BatchStatusKind.Failed) MaterialTheme.colors.error else MaterialTheme.colors.onSurface,
+        maxLines = if (kind is BatchStatusKind.Failed) 3 else 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+    if (kind is BatchStatusKind.Running) {
+        LinearProgressIndicator(
+            progress = kind.fraction.coerceIn(0f, 1f),
+            modifier = Modifier.fillMaxWidth().height(4.dp),
+        )
+    }
+}
+
+internal sealed interface BatchStatusKind {
+    data object Pending : BatchStatusKind
+    data class Running(val fraction: Float, val percent: Int) : BatchStatusKind
+    data class Done(val fileName: String) : BatchStatusKind
+    data class Failed(val message: String) : BatchStatusKind
+    data object Cancelled : BatchStatusKind
+}
+
+internal fun batchStatusKind(state: BatchJobState?): BatchStatusKind? = when (state) {
+    null -> null
+    BatchJobState.Pending -> BatchStatusKind.Pending
+    is BatchJobState.Running -> BatchStatusKind.Running(
+        fraction = state.fraction,
+        percent = (state.fraction.coerceIn(0f, 1f) * 100f + 0.5f).toInt().coerceIn(0, 100),
+    )
+    is BatchJobState.Done -> BatchStatusKind.Done(state.result.output.fileName.toString())
+    is BatchJobState.Failed -> BatchStatusKind.Failed(state.message)
+    BatchJobState.Cancelled -> BatchStatusKind.Cancelled
 }
 
 @Composable
