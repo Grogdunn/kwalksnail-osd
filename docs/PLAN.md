@@ -98,4 +98,12 @@ Branch `feature/per-clip-osd-offset`.
 
 ## 3. Automatic scale/pad
 
-- [ ] Scale/pad clips with different resolutions to a common size.
+Branch `feature/auto-scale-pad`.
+
+- [x] Joined burn accepts clips with different resolutions: each clip is scaled to the first included clip's size, keeping aspect ratio, with black bars (ffmpeg `scale=...:force_original_aspect_ratio=decrease,pad=...`).
+- [x] OSD is rendered at the target size (after scaling); per-clip offsets are in target pixels.
+- [x] "Adapt different resolutions" toggle in the clip list (default on, shown only when resolutions differ); info message with the target size instead of the error.
+- [x] FPS mismatch still blocks the joined burn.
+- [x] No scaling when all clips already match; single-video and batch mode unchanged.
+- [x] UI strings in all 5 languages (en/it/es/de/fr).
+- [x] Tests: real ffmpeg (mixed sizes -> output at target size, OSD tile at target position), model, holder.
