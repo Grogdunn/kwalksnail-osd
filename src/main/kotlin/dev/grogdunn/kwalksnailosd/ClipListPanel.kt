@@ -2,6 +2,7 @@ package dev.grogdunn.kwalksnailosd
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import dev.grogdunn.kwalksnailosd.clip.BatchJobState
 import dev.grogdunn.kwalksnailosd.clip.ClipEntry
 import dev.grogdunn.kwalksnailosd.clip.ClipList
+import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.generated.resources.Res
 import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_cancelled
 import dev.grogdunn.kwalksnailosd.generated.resources.batch_state_done
@@ -63,6 +65,10 @@ import dev.grogdunn.kwalksnailosd.generated.resources.clips_mismatch_resolution
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_move_down
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_move_up
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_no
+import dev.grogdunn.kwalksnailosd.generated.resources.clips_offset_x
+import dev.grogdunn.kwalksnailosd.generated.resources.clips_offset_y
+import dev.grogdunn.kwalksnailosd.generated.resources.clips_own_offset
+import dev.grogdunn.kwalksnailosd.generated.resources.clips_preview
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_resolution
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_restore_order
 import dev.grogdunn.kwalksnailosd.generated.resources.clips_total_duration
@@ -181,8 +187,14 @@ private fun ClipRow(
     val info = entry.info
     val video = info.videoInfo
     val highlighted = highlightMismatches && clipList.highlighted(entry.id)
+    val previewed = entry.id == stateHolder.state.previewClipId
+    val canPreview = editsEnabled && video != null && info.osd != null
     val rowHeightPx = remember(entry.id) { mutableFloatStateOf(1f) }
-    val borderColor = if (highlighted) MaterialTheme.colors.error else Color(0xFF2C2C2C)
+    val borderColor = when {
+        highlighted -> MaterialTheme.colors.error
+        previewed -> MaterialTheme.colors.primary
+        else -> Color(0xFF2C2C2C)
+    }
     val background = if (highlighted) MaterialTheme.colors.error.copy(alpha = 0.15f) else MaterialTheme.colors.surface
     val excludeLabel = stringResource(Res.string.clips_exclude)
     val dragLabel = stringResource(Res.string.clips_drag_handle)
@@ -235,8 +247,18 @@ private fun ClipRow(
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = canPreview) { stateHolder.previewClip(entry.id) },
             )
+            OutlinedButton(
+                onClick = { stateHolder.previewClip(entry.id) },
+                enabled = canPreview,
+                modifier = Modifier.height(28.dp),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+            ) {
+                Text(stringResource(Res.string.clips_preview), fontSize = 11.sp, maxLines = 1)
+            }
         }
         Text(
             text = clipSummary(video, info.osd != null, info.srt != null, yes, no),
@@ -245,6 +267,26 @@ private fun ClipRow(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = entry.offset != null,
+                onCheckedChange = { stateHolder.enableClipOffset(entry.id, it) },
+                enabled = editsEnabled,
+            )
+            Text(stringResource(Res.string.clips_own_offset), style = MaterialTheme.typography.caption)
+        }
+        entry.offset?.let { offset ->
+            ClipOffsetAxis(
+                label = stringResource(Res.string.clips_offset_x, offset.x),
+                enabled = editsEnabled,
+                onNudge = { delta -> stateHolder.setClipOffset(entry.id, nudgeOffset(offset, delta, 0)) },
+            )
+            ClipOffsetAxis(
+                label = stringResource(Res.string.clips_offset_y, offset.y),
+                enabled = editsEnabled,
+                onNudge = { delta -> stateHolder.setClipOffset(entry.id, nudgeOffset(offset, 0, delta)) },
+            )
+        }
         if (stateHolder.state.batchMode) {
             BatchJobCaption(stateHolder.state.batchJobs[entry.id])
         }
@@ -327,6 +369,20 @@ private fun ClipError(message: String) {
 }
 
 @Composable
+private fun ClipOffsetAxis(label: String, enabled: Boolean, onNudge: (Int) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.caption, maxLines = 1)
+        listOf(-10, -1, 1, 10).forEach { delta ->
+            val text = if (delta < 0) "−${-delta}" else "+$delta"
+            NudgeButton(label = text, description = text, enabled = enabled, onClick = { onNudge(delta) })
+        }
+    }
+}
+
+@Composable
 private fun NudgeButton(label: String, description: String, enabled: Boolean, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
@@ -373,6 +429,15 @@ private fun DragHandle(
             },
     )
 }
+
+internal const val OSD_OFFSET_MIN = -200
+internal const val OSD_OFFSET_MAX = 700
+
+internal fun nudgeOffset(offset: OsdOffset, dx: Int, dy: Int): OsdOffset =
+    offset.copy(
+        x = (offset.x + dx).coerceIn(OSD_OFFSET_MIN, OSD_OFFSET_MAX),
+        y = (offset.y + dy).coerceIn(OSD_OFFSET_MIN, OSD_OFFSET_MAX),
+    )
 
 private fun AppStateHolder.moveClipBy(id: String, down: Boolean): Boolean {
     val before = state.clipList?.entries?.map { it.id } ?: return false
