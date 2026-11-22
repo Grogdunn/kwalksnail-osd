@@ -61,6 +61,33 @@ Upstream issue #7 of avsaase/walksnail-osd-tool.
 
 ## Deferred (not in this round)
 
-- Automatic scale/pad to make mismatching clips compatible.
-- Per-clip OSD offset.
-- Batch mode (upstream #24).
+- Automatic scale/pad to make mismatching clips compatible (round 2, part 3).
+- Per-clip OSD offset (round 2, part 2).
+- Batch mode (upstream #24) (round 2, part 1).
+
+# Round 2
+
+One feature per branch and PR, in this order.
+
+## 1. Batch mode
+
+Upstream: [avsaase/walksnail-osd-tool](https://github.com/avsaase/walksnail-osd-tool) issue #24. Branch `feature/batch-mode`.
+
+- [x] Pick several videos at once (multi-file dialog); each gets its `.osd`/`.srt` companion by base name.
+- [x] Folder or multi-file list can be burned as "Join into one video" (as before) or "Convert each separately".
+- [x] Separate outputs `<name>_with_osd.mp4` in a chosen folder; never overwrite an existing file or another job's output (`_2`, `_3`, ...).
+- [x] Jobs run one at a time in list order; excluded clips are skipped.
+- [x] Per-job status in the clip list (waiting, percent, done, failed with reason, cancelled) plus overall progress.
+- [x] A failing job (unreadable video, missing OSD, encoder error) does not stop the others; summary at the end.
+- [x] Cancel stops the current job and the ones not started; finished outputs are kept.
+- [x] Resolution/fps mismatch does not block batch mode (each output is independent).
+- [x] UI strings in all 5 languages (en/it/es/de/fr).
+- [x] Tests: batch burner (fake and real ffmpeg), unique names, multi-file scan, holder batch flow.
+
+## 2. Per-clip OSD offset
+
+- [ ] Offset configurable per clip in the clip list (multi-clip burn).
+
+## 3. Automatic scale/pad
+
+- [ ] Scale/pad clips with different resolutions to a common size.
