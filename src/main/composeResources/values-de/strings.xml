@@ -49,6 +49,10 @@
     <string name="clips_move_up">Nach oben</string>
     <string name="clips_move_down">Nach unten</string>
     <string name="clips_drag_handle">Ziehen zum Sortieren</string>
+    <string name="clips_preview">Vorschau</string>
+    <string name="clips_own_offset">Eigener OSD-Offset</string>
+    <string name="clips_offset_x">X: %1$d</string>
+    <string name="clips_offset_y">Y: %1$d</string>
 
     <string name="details_title">Video- und OSD-Details</string>
     <string name="details_video">Video:</string>
@@ -84,6 +88,7 @@
     <string name="export_title">Export</string>
     <string name="export_offset_x">Offset X: %1$d px</string>
     <string name="export_offset_y">Offset Y: %1$d px</string>
+    <string name="offset_global_hint">Globaler Offset: wird von Clips ohne eigenen Offset verwendet</string>
     <string name="export_center">Zentrieren</string>
     <string name="export_reset">Zurücksetzen</string>
     <string name="export_correct_speed">OSD-Geschwindigkeit korrigieren</string>

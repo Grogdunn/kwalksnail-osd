@@ -411,7 +411,7 @@ private fun SrtFieldCheckbox(label: String, checked: Boolean, enabled: Boolean, 
 @Composable
 private fun BurnOptions(stateHolder: AppStateHolder) {
     val state = stateHolder.state
-    val controlsEnabled = !state.isBurning && state.videoInfo != null && state.osd != null && state.font != null
+    val controlsEnabled = stateHolder.canEditBurnOptions()
     val speedFactor = if (state.videoInfo != null && state.osd != null) {
         osdPlaybackSpeedFactor(state.videoInfo.duration, state.osd.duration, state.adjustOsdPlaybackSpeed)
     } else {
@@ -431,16 +431,23 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
     Slider(
         value = state.osdOffsetX.toFloat(),
         onValueChange = { stateHolder.setOsdOffset(it.roundToInt(), state.osdOffsetY) },
-        valueRange = -200f..700f,
+        valueRange = OSD_OFFSET_MIN.toFloat()..OSD_OFFSET_MAX.toFloat(),
         enabled = controlsEnabled,
     )
     Text(stringResource(Res.string.export_offset_y, state.osdOffsetY), style = MaterialTheme.typography.caption)
     Slider(
         value = state.osdOffsetY.toFloat(),
         onValueChange = { stateHolder.setOsdOffset(state.osdOffsetX, it.roundToInt()) },
-        valueRange = -200f..700f,
+        valueRange = OSD_OFFSET_MIN.toFloat()..OSD_OFFSET_MAX.toFloat(),
         enabled = controlsEnabled,
     )
+    if (state.clipList != null) {
+        Text(
+            text = stringResource(Res.string.offset_global_hint),
+            style = MaterialTheme.typography.caption,
+            color = Color.Gray,
+        )
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(onClick = stateHolder::centerOsd, enabled = controlsEnabled) {
             Text(stringResource(Res.string.export_center), fontSize = 12.sp)
