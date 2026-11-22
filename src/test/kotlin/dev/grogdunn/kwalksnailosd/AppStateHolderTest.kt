@@ -8,6 +8,7 @@ import dev.grogdunn.kwalksnailosd.video.OsdExportMode
 import dev.grogdunn.kwalksnailosd.video.OsdOffset
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
 import dev.grogdunn.kwalksnailosd.video.VideoInfo
+import dev.grogdunn.kwalksnailosd.video.VideoSize
 import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -382,6 +383,48 @@ class AppStateHolderTest {
                 assertTrue(holder.canStartBatch())
             } finally {
                 holder.close()
+                directory.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
+    fun adaptResolutionControlsJoinBurnAndTargetSize() {
+        runBlocking {
+            val directory = createTempDirectory("adapt-resolution")
+            suspend fun load(holder: AppStateHolder, name: String) {
+                val folder = directory.resolve(name)
+                Files.createDirectories(folder)
+                for (clip in listOf("a", "b")) {
+                    folder.resolve("$clip.mp4").writeText("x")
+                    writeOsd(folder.resolve("$clip.osd"))
+                }
+                holder.onFolderPicked(folder)
+                holder.onFontFilePickerClosed(fontResource("font_36x13878.png"))
+                holder.parseSelectedFont()
+            }
+            val mixed = folderHolder(mapOf("a.mp4" to clipVideo(), "b.mp4" to clipVideo(width = 1280, height = 720)))
+            val same = folderHolder(mapOf("a.mp4" to clipVideo(), "b.mp4" to clipVideo()))
+            val fps = folderHolder(mapOf("a.mp4" to clipVideo(frameRate = 60.0), "b.mp4" to clipVideo(frameRate = 30.0)))
+            try {
+                load(mixed, "mixed")
+                assertTrue(mixed.state.adaptResolution)
+                assertTrue(mixed.canStartBurn())
+                assertEquals(VideoSize(1920, 1080), mixed.joinTargetSize())
+                mixed.setAdaptResolution(false)
+                assertFalse(mixed.canStartBurn())
+                assertNull(mixed.joinTargetSize())
+
+                load(same, "same")
+                assertNull(same.joinTargetSize())
+
+                load(fps, "fps")
+                assertTrue(fps.state.adaptResolution)
+                assertFalse(fps.canStartBurn())
+            } finally {
+                mixed.close()
+                same.close()
+                fps.close()
                 directory.toFile().deleteRecursively()
             }
         }
