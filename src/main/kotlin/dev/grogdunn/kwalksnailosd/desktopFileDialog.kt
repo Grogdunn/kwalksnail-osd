@@ -1,19 +1,12 @@
 package dev.grogdunn.kwalksnailosd
 
-import java.awt.Component
-import java.awt.Container
 import java.awt.FileDialog
 import java.awt.Frame
-import java.awt.event.HierarchyEvent
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
 import java.io.File
 import java.io.FilenameFilter
 import java.nio.file.Files
 import java.nio.file.Path
 import javax.swing.JFileChooser
-import javax.swing.JList
-import javax.swing.SwingUtilities
 import kotlin.io.path.extension
 
 fun desktopFileDialog(
@@ -117,7 +110,6 @@ fun desktopFolderDialog(
             currentDirectory = initialDirectory.toFile()
         }
     }
-    approveDirectoryOnSingleClick(chooser)
     val selected = if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) chooser.selectedFile else null
     if (selected != null) {
         onCloseRequest(selected.toPath())
@@ -125,37 +117,3 @@ fun desktopFolderDialog(
         onCloseRequest(null)
     }
 }
-
-private fun approveDirectoryOnSingleClick(chooser: JFileChooser) {
-    chooser.addHierarchyListener { event ->
-        if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() == 0L || !chooser.isShowing) return@addHierarchyListener
-        val list = findFileList(chooser) ?: return@addHierarchyListener
-        if (list.getClientProperty(FOLDER_ONE_CLICK) == true) return@addHierarchyListener
-        list.putClientProperty(FOLDER_ONE_CLICK, true)
-        list.addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(event: MouseEvent) {
-                if (event.clickCount != 1 || !SwingUtilities.isLeftMouseButton(event)) return
-                val index = list.locationToIndex(event.point)
-                if (index < 0) return
-                val bounds = list.getCellBounds(index, index) ?: return
-                if (!bounds.contains(event.point)) return
-                val file = list.model.getElementAt(index) as? File ?: return
-                if (!file.isDirectory) return
-                chooser.selectedFile = file
-                chooser.approveSelection()
-            }
-        })
-    }
-}
-
-private fun findFileList(component: Component): JList<*>? {
-    if (component is JList<*>) return component
-    if (component is Container) {
-        for (child in component.components) {
-            findFileList(child)?.let { return it }
-        }
-    }
-    return null
-}
-
-private const val FOLDER_ONE_CLICK = "folderOneClick"

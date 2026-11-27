@@ -494,8 +494,9 @@ private fun BurnOptions(stateHolder: AppStateHolder) {
         enabled = controlsEnabled,
     )
 
-    LaunchedEffect(state.burnCodec, state.videoInfo != null) {
-        if (state.videoInfo != null) stateHolder.refreshBurnEncoders()
+    val probeEncoders = state.videoInfo != null || state.clipList != null
+    LaunchedEffect(state.burnCodec, probeEncoders) {
+        if (probeEncoders) stateHolder.refreshBurnEncoders()
     }
     EncoderPicker(stateHolder, controlsEnabled)
 }

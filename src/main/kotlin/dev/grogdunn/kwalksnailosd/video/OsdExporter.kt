@@ -335,7 +335,7 @@ class OsdExporter(
             )
         }
         val cue = srt?.let { srtCueAt(it.cues, videoTimeMillis)?.data }
-        if (cue != null) SrtOverlay.draw(image, cue, srtOptions)
+        if (cue != null) SrtOverlay.draw(image, cue, srtOptions, antialias = transparent)
         return image
     }
 

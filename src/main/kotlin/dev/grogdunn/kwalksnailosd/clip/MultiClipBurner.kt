@@ -160,7 +160,9 @@ class MultiClipBurner(
             "error",
         )
         if (clip.videoInfo.hasAudio) {
-            command += listOf("-i", clip.video.toString(), "-vn", "-t", seconds)
+            // -t does not extend a stream that ends early. apad fills the rest with silence
+            // so a short audio track cannot pull the joined video down through -shortest.
+            command += listOf("-i", clip.video.toString(), "-vn", "-af", "apad", "-t", seconds)
         } else {
             command += listOf("-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", seconds)
         }
