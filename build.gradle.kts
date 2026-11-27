@@ -80,7 +80,7 @@ compose.desktop {
         javaHome = packagedJdk.metadata.installationPath.asFile.absolutePath
         jvmArgs("--enable-native-access=ALL-UNNAMED")
         nativeDistributions {
-            packageName = "Walksnail-osd"
+            packageName = "kwalksnail-osd"
             packageVersion = appPackageVersion
             description = "Walksnail OSD preview"
             vendor = "Grogdunn"
@@ -95,6 +95,13 @@ compose.desktop {
             )
             macOS {
                 bundleID = "dev.grogdunn.kwalksnailosd"
+                iconFile.set(project.file("packaging/icons/kwalksnail-osd.icns"))
+            }
+            windows {
+                iconFile.set(project.file("packaging/icons/kwalksnail-osd.ico"))
+            }
+            linux {
+                iconFile.set(project.file("packaging/icons/kwalksnail-osd.png"))
             }
         }
     }

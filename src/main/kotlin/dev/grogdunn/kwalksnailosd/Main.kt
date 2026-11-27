@@ -53,6 +53,7 @@ import dev.grogdunn.kwalksnailosd.osd.osdPlaybackSpeedFactor
 import dev.grogdunn.kwalksnailosd.video.BurnEncoderPreference
 import dev.grogdunn.kwalksnailosd.video.OsdExportMode
 import dev.grogdunn.kwalksnailosd.video.VideoCodec
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import java.time.Duration
@@ -74,7 +75,8 @@ fun main() = application {
             exitApplication()
         },
         title = stringResource(Res.string.window_title),
-        state = windowState
+        state = windowState,
+        icon = painterResource(Res.drawable.app_icon),
     ) {
         val openVideoTitle = stringResource(Res.string.dialog_open_video)
         val openOsdTitle = stringResource(Res.string.dialog_open_osd)

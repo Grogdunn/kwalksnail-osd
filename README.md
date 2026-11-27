@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.png" alt="kwalksnail-osd logo" width="128" />
+</p>
+
 # Walksnail OSD
 
 [![CI](https://github.com/Grogdunn/kwalksnail-osd/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Grogdunn/kwalksnail-osd/actions/workflows/ci.yml) [![Release](https://github.com/Grogdunn/kwalksnail-osd/actions/workflows/release.yml/badge.svg)](https://github.com/Grogdunn/kwalksnail-osd/actions/workflows/release.yml) [![Latest release](https://img.shields.io/github/v/release/Grogdunn/kwalksnail-osd)](https://github.com/Grogdunn/kwalksnail-osd/releases/latest) [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE) [![GitHub Sponsors](https://img.shields.io/github/sponsors/Grogdunn)](https://github.com/sponsors/Grogdunn) [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/Grogdunn)
@@ -92,24 +96,24 @@ These builds are not signed or notarized.
 
 ### Windows (x64)
 
-1. Download `walksnail-osd-windows-x64.zip`.
-2. Unzip it and open the `Walksnail-osd` folder.
-3. Run `Walksnail-osd.exe`.
+1. Download `kwalksnail-osd-windows-x64.zip`.
+2. Unzip it and open the `kwalksnail-osd` folder.
+3. Run `kwalksnail-osd.exe`.
 
 SmartScreen shows "Windows protected your PC" for this unsigned program. Choose **More info**, then **Run anyway**.
 
 ### macOS (Apple Silicon and Intel)
 
-1. Download `walksnail-osd-macos-arm64.zip` on Apple Silicon, or `walksnail-osd-macos-x64.zip` on an Intel Mac.
-2. Unzip it and open `Walksnail-osd.app`.
+1. Download `kwalksnail-osd-macos-arm64.zip` on Apple Silicon, or `kwalksnail-osd-macos-x64.zip` on an Intel Mac.
+2. Unzip it and open `kwalksnail-osd.app`.
 
 Gatekeeper blocks the unsigned app the first time. Control-click the app, choose **Open**, then **Open** again. The same approval is under **System Settings → Privacy & Security → Open Anyway**.
 
 ### Linux (x64)
 
-1. Download `walksnail-osd-linux-x64.zip`.
-2. Unzip it and open the `Walksnail-osd` folder.
-3. Run `./bin/Walksnail-osd`.
+1. Download `kwalksnail-osd-linux-x64.zip`.
+2. Unzip it and open the `kwalksnail-osd` folder.
+3. Run `./bin/kwalksnail-osd`.
 
 The executable is not signed.
 

@@ -20,20 +20,20 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            archive: walksnail-osd-windows-x64
-            launcher: Walksnail-osd.exe
+            archive: kwalksnail-osd-windows-x64
+            launcher: kwalksnail-osd.exe
             native: windows-x86_64
           - os: macos-latest
-            archive: walksnail-osd-macos-arm64
-            launcher: Walksnail-osd.app/Contents/MacOS/Walksnail-osd
+            archive: kwalksnail-osd-macos-arm64
+            launcher: kwalksnail-osd.app/Contents/MacOS/kwalksnail-osd
             native: macosx-arm64
           - os: macos-15-intel
-            archive: walksnail-osd-macos-x64
-            launcher: Walksnail-osd.app/Contents/MacOS/Walksnail-osd
+            archive: kwalksnail-osd-macos-x64
+            launcher: kwalksnail-osd.app/Contents/MacOS/kwalksnail-osd
             native: macosx-x86_64
           - os: ubuntu-latest
-            archive: walksnail-osd-linux-x64
-            launcher: bin/Walksnail-osd
+            archive: kwalksnail-osd-linux-x64
+            launcher: bin/kwalksnail-osd
             native: linux-x86_64
     steps:
       - name: Checkout
