@@ -143,6 +143,35 @@ class SrtOverlayTest {
         assertEquals(0, nonBlackPixels(hidden))
         assertFalse(nonBlackPixels(shown) == 0)
     }
+
+    @Test
+    fun chromaKeyTextStaysOnTheKeyColorOrTheInk() {
+        val data = SrtData(4, 8, 0, 4.7, 7.2, 32, 25.0, 7)
+        val options = SrtOptions(xPercent = 4f, yPercent = 30f, scale = 80f)
+        val keyed = Color(255, 0, 255)
+        val image = BufferedImage(960, 540, BufferedImage.TYPE_INT_RGB)
+        val graphics = image.createGraphics()
+        graphics.color = keyed
+        graphics.fillRect(0, 0, image.width, image.height)
+        graphics.dispose()
+
+        SrtOverlay.draw(image, data, options, antialias = false)
+
+        var ink = 0
+        var fringe = 0
+        for (y in 0 until image.height) {
+            for (x in 0 until image.width) {
+                val pixel = image.getRGB(x, y)
+                if (isKeyOrInk(pixel, keyed)) {
+                    if (!isKey(pixel, keyed)) ink += 1
+                } else {
+                    fringe += 1
+                }
+            }
+        }
+        assertTrue(ink > 30, "hard-edged text should cover the key color")
+        assertEquals(0, fringe, "antialiased fringe pixels would survive a chroma key")
+    }
 }
 
 private fun blackFrame(): BufferedImage {
@@ -174,6 +203,21 @@ private fun inkBounds(image: BufferedImage): Ink {
 }
 
 private fun nonBlackPixels(image: BufferedImage): Int = inkBounds(image).count
+
+private fun isKey(pixel: Int, key: Color): Boolean {
+    val red = (pixel shr 16) and 0xFF
+    val green = (pixel shr 8) and 0xFF
+    val blue = pixel and 0xFF
+    return red == key.red && green == key.green && blue == key.blue
+}
+
+private fun isKeyOrInk(pixel: Int, key: Color): Boolean {
+    if (isKey(pixel, key)) return true
+    val red = (pixel shr 16) and 0xFF
+    val green = (pixel shr 8) and 0xFF
+    val blue = pixel and 0xFF
+    return red == 240 && green == 240 && blue == 240
+}
 
 private const val PRE_V31_36_8 =
     "Signal:4 CH:8 FlightTime:0 SBat:4.7V GBat:7.2V Delay:32ms Bitrate:25Mbps Distance:7m"

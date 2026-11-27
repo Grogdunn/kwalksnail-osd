@@ -169,6 +169,36 @@ class MultiClipBurnTest {
     }
 
     @Test
+    fun shortAudioIsPaddedSoTheJoinedVideoKeepsItsLength() {
+        val ffmpeg = FfmpegLocator().locateFor(VideoCodec.H264)
+        val directory = createTempDirectory("multiclip-short-audio")
+        val first = preparedClip(
+            ffmpeg, directory, "one", withAudio = true, gridX = 1, audioSeconds = 0.2,
+        )
+        val second = preparedClip(ffmpeg, directory, "two", withAudio = false, gridX = 3)
+        val output = directory.resolve("joined.mp4")
+
+        MultiClipBurner(ffmpeg).burn(
+            clips = listOf(first, second),
+            font = magentaFont(),
+            settings = softwareSettings(),
+            output = output,
+        )
+
+        VideoParser().use { parser ->
+            val burned = parser.getVideoInfo(output)
+            assertTrue(burned.hasAudio, "joined export must keep an audio track")
+            assertTrue(
+                abs(burned.duration.toMillis() - 2_000) < 300,
+                "short source audio must not truncate the join, duration ${burned.duration.toMillis()} ms",
+            )
+        }
+        val late = extractFrameAt(ffmpeg, output, seconds = 1.2, directory.resolve("late.png"))
+        val tile = CharacterSize.LARGE
+        assertMagentaTile(late, tileOrigin(gridX = 3, gridY = 0, tile = tile), tile)
+    }
+
+    @Test
     fun resolutionMismatchWithoutTargetSizeThrows() {
         val directory = createTempDirectory("multiclip-mismatch")
         val osd = OsdParser().parse(writeOsd(directory.resolve("clip.osd"), gridX = 1))
@@ -212,9 +242,19 @@ internal fun preparedClip(
     gridX: Int,
     width: Int = 160,
     height: Int = 90,
+    audioSeconds: Double? = null,
 ): PreparedClip {
     val video = directory.resolve("$name.mp4")
-    renderTestSrc(ffmpeg, video, width = width, height = height, fps = 10, seconds = 1, withAudio = withAudio)
+    renderTestSrc(
+        ffmpeg,
+        video,
+        width = width,
+        height = height,
+        fps = 10,
+        seconds = 1,
+        withAudio = withAudio,
+        audioSeconds = audioSeconds,
+    )
     val videoInfo = VideoParser().use { it.getVideoInfo(video) }
     val osd = OsdParser().parse(writeOsd(directory.resolve("$name.osd"), gridX))
     return PreparedClip(video, videoInfo, osd)
@@ -228,7 +268,9 @@ private fun renderTestSrc(
     fps: Int,
     seconds: Int,
     withAudio: Boolean,
+    audioSeconds: Double? = null,
 ) {
+    val videoDuration = if (audioSeconds != null) ":d=$seconds" else ""
     val command = mutableListOf(
         ffmpeg.toString(),
         "-y",
@@ -239,13 +281,20 @@ private fun renderTestSrc(
         "-f",
         "lavfi",
         "-i",
-        "color=c=black:s=${width}x${height}:r=$fps",
+        "color=c=black:s=${width}x${height}:r=$fps$videoDuration",
     )
     if (withAudio) {
-        command += listOf("-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100")
+        val tone = if (audioSeconds != null) {
+            "sine=frequency=440:sample_rate=44100:duration=$audioSeconds"
+        } else {
+            "sine=frequency=440:sample_rate=44100"
+        }
+        command += listOf("-f", "lavfi", "-i", tone)
     }
-    command += listOf("-t", seconds.toString())
-    if (withAudio) command += "-shortest"
+    if (audioSeconds == null) {
+        command += listOf("-t", seconds.toString())
+        if (withAudio) command += "-shortest"
+    }
     val encoder = FfmpegEncoders.firstSoftware(ffmpeg, VideoCodec.H264)
         ?: error("no H.264 encoder in $ffmpeg")
     command += listOf("-c:v", encoder, "-pix_fmt", "yuv420p")

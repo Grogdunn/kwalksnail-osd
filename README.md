@@ -12,11 +12,13 @@ This project is independent of Walksnail and Caddx.
 
 - Opens a Walksnail DVR `.mp4`, the matching `.osd`, and a PNG OSD font.
 - Fills in files that share the same name in the same folder.
+- Opens a folder of clips, or several MP4s, and burns them joined or one file each.
 - Draws the OSD on the video frame you select.
 - Shows the video resolution, frame rate, frame count, duration, and codec.
 - Shows the flight-controller tag, the number of OSD frames, and the OSD duration.
 - Writes a new MP4 with the OSD drawn into the frames, and keeps the audio.
-- Draws the Walksnail `.srt` fields you choose on the preview and on the burned video.
+- Draws the Walksnail `.srt` fields you choose on the preview and on the burned video. Caddx Ascent lines and Avatar debug lines are read too.
+- Exports the OSD on its own: chroma key, ProRes 4444, VP9 with alpha, or a PNG sequence.
 - Follows the system language. The interface is available in English, Italian, Spanish, German, and French.
 
 The downloadable builds include a Java runtime and the FFmpeg libraries used to read the video and to write H.264. You do not install Java. H.265 export needs an `ffmpeg` on your PATH that includes `libx265`. The bundled libraries do not include that encoder.
@@ -49,15 +51,38 @@ The encoder is the `ffmpeg` binary from the JavaCV native libraries, the same bi
 
 For H.264 the app prefers `libx264` when the chosen binary has it, and otherwise uses `libopenh264` from the JavaCV build. OpenH264 follows the requested bitrate less closely. H.265 needs `libx265`. The hardware encoders above are probed on that same binary. If H.264 is written by the JavaCV binary and H.265 by an ffmpeg on `PATH`, each one is probed on its own.
 
+## Several clips
+
+**Open folder...** lists every `.mp4` in that folder. The `.osd` and the `.srt` with the same name are attached to each clip. **Open several videos (batch)…** does the same for the files you pick, including files from more than one folder. Reorder the list, exclude a clip, or restore A→Z order. The total duration counts the clips that stay included.
+
+**Join into one video** writes `<first>_joined.mp4`. The included clips need the same frame rate. If the sizes differ, **Adapt different resolutions** is on by default: each clip is scaled to the first included clip, keeping the aspect ratio, and the empty space is black. The OSD is drawn on that target frame. Turn the option off and Burn stays disabled until every included clip has the same size. A clip uses the global offset, or its own offset when **Own OSD offset** is checked. Audio is AAC. A clip with no audio, or with audio shorter than the picture, gets silence for the missing part.
+
+**Convert each separately** writes `<name>_with_osd.mp4` for each included clip into a folder you choose. An existing file, or another clip with the same name, is named `_2`, `_3`, and so on. A clip that fails does not stop the others. Cancel keeps the files that already finished. Different sizes and frame rates are allowed, because each file is independent.
+
+## OSD only
+
+The mode row sits above the codec. **Burn** writes the video with the OSD on it. The other modes draw the OSD on an empty frame for the length of the open video, or of the first included clip when a folder is open. Batch mode does not offer this export.
+
+- **Chroma key** fills the frame with a color you choose. Magenta is the default. Glyphs and the SRT line are drawn with hard edges, so a keyer can drop the background.
+- **ProRes 4444** writes a `.mov` with an alpha channel.
+- **VP9 alpha** writes a `.webm` with an alpha channel.
+- **PNG sequence** writes `osd_000001.png` and the following frames, with alpha, into a folder. The app estimates the size from the raw frame and asks before writing.
+
 ## SRT overlay
 
-A Walksnail `.srt` adds flight time, sky and ground battery, signal, latency, bitrate, and distance to the preview and to the burned video. Position is a percentage of the frame, from 0 to 100. Scale runs from 10 to 60 and is relative to a frame height of 1080. Each field can be hidden. Distance turns itself off when no cue reports a distance above zero.
+A Walksnail `.srt` adds flight time, sky and ground battery, signal, latency, bitrate, and distance to the preview and to the burned video. Caddx Ascent files use `Hz:` in place of `CH:`. Avatar debug files add MCS, ground and sky SNR, and temperatures. A debug file turns MCS and SNR on and turns signal, bitrate, and distance off. A file with no Walksnail or Caddx telemetry is rejected. Position is a percentage of the frame, from 0 to 100. Scale runs from 10 to 60 and is relative to a frame height of 1080. Each field can be hidden. Distance turns itself off when no cue reports a distance above zero.
 
 The text is opaque light gray. Walksnail OSD Tool draws the same color with alpha 10. The vertical position is the top of the text.
 
 ## Screenshots
 
-TODO: add screenshots of the main window. Show the file list, the frame slider, and a DVR frame with the OSD drawn on it.
+The main window with no video open. Source files are on the left, the empty preview is in the center, and the SRT controls are on the right.
+
+![Walksnail OSD main window, no video open](docs/screenshots/main-window.png)
+
+The same window, scrolled to the export modes. Chroma key, ProRes 4444, VP9 alpha, and a PNG sequence sit next to Burn. MCS, SNR, and temperature are the debug SRT fields.
+
+![OSD-only export modes and debug SRT fields](docs/screenshots/export-modes.png)
 
 ## Download
 
